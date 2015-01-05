@@ -1,0 +1,358 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from fx import *
+from scapy.layers.inet import TCP, IP, UDP
+
+
+class Flow(object):
+
+    """
+    универсальный класс потока, содержащий метод генерации своего трафика
+    params = (node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf)
+    >>> ftp  = FTP([[1.0, 0.1]])
+    >>> flp  = FLP([[1.0, 100]])
+    >>> fttl = FTTL([[1.0, 1]])
+    >>> ftf  = FTF([[1.0, 100]])
+    >>> f    = Flow(0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf)
+    """
+
+    # TODO: ВВЕСТИ FHF - ФРВ ПОЛУПОТОКА (НАПРАВЛЕНИЯ)
+
+    def __init__(self, *params):
+        param_types = map(lambda x: type(x), params)
+        if param_types != [int, int] + [FTP, FLP, FTTL] * 2 + [FTF]:
+            raise ValueError(params)
+
+        self.node1 = params[0]
+        self.node2 = params[1]
+
+        self.ftp1 = params[2]
+        self.flp1 = params[3]
+        self.fttl1 = params[4]
+
+        self.ftp2 = params[5]
+        self.flp2 = params[6]
+        self.fttl2 = params[7]
+
+        self.ftf = params[8]
+
+        # массив ссылок на все ФРВ
+        self.fxs = params[2:]
+
+    # -------------------------------------------------------------------------
+
+    def generate(self, translator, t0):
+
+        """
+        функция генерации
+        translator - транслятор индексов узлов в сетевые адреса
+        t0         - время начала потока
+        """
+
+        return []
+
+
+# =============================================================================
+
+class FlowSock(Flow):
+
+    """
+    класс потока, поддерживающего сокеты
+    params = (port1, port2, node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf)
+    >>> ftp  = FTP([[1.0, 0.1]])
+    >>> flp  = FLP([[1.0, 100]])
+    >>> fttl = FTTL([[1.0, 1]])
+    >>> ftf  = FTF([[1.0, 100]])
+    >>> f    = FlowSock(9999, 42, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf)
+    """
+
+    def __init__(self, *params):
+        parent_params = params[2:]
+        super(FlowSock, self).__init__(*parent_params)
+        if not (type(params[0]) == type(params[1]) == int):
+            raise ValueError
+        self.port1 = params[0]
+        self.port2 = params[1]
+
+
+# =============================================================================
+
+
+class FlowTCP(FlowSock):
+
+    """
+    класс потока TCP
+    params = (port1, port2, node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf)
+    >>> ftp   = FTP([[1.0, 0.1]])
+    >>> flp   = FLP([[1.0, 100]])
+    >>> fttl  = FTTL([[1.0, 1]])
+    >>> ftf   = FTF([[1.0, 100]])
+    >>> f     = FlowTCP(9999, 42, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf)
+    >>> nets  = [('a', 'l'), ('b', 'r')]
+    >>> nodes = [0, 1]
+    >>> t     = Translator(nets, nodes)
+    >>> packs = f.generate(t, 42.0)
+    >>> 950 < len(packs) < 1050
+    True
+    >>> (packs[0][TCP].sport, packs[1][TCP].sport, packs[2][TCP].sport)
+    (9999, 42, 9999)
+    """
+
+    def __init__(self, *params):
+
+        super(FlowTCP, self).__init__(*params)
+
+    # -------------------------------------------------------------------------
+
+    def generate_l5(self, length):
+
+        l5 = 'A' * length
+        return l5
+
+    # -------------------------------------------------------------------------
+
+    def generate(self, translator, t0):
+
+        t1 = t0 + self.ftf.random()
+
+        ip1 = translator.node2ip[self.node1]
+        ip2 = translator.node2ip[self.node2]
+
+        l3_1 = IP(src=ip1, dst=ip2)
+        l4_1 = TCP(sport=self.port1, dport=self.port2)
+        l3_2 = IP(src=ip2, dst=ip1)
+        l4_2 = TCP(sport=self.port2, dport=self.port1)
+
+        l34_1 = l3_1 / l4_1
+        l34_2 = l3_2 / l4_2
+        params1 = {'ftp': self.ftp1, 'flp': self.flp1, 'fttl': self.fttl1}
+        params2 = {'ftp': self.ftp2, 'flp': self.flp2, 'fttl': self.fttl2}
+
+        seq_mod = 2 ** 32
+        max_seq = 2 ** 32 - 1
+        seq1 = random.random() * max_seq
+        seq2 = random.random() * max_seq
+
+        packets = []
+        t = t0
+        state = 'C'
+
+        while state != 'Q':
+
+            # открытие соединения
+            if state == 'C':
+
+                l34 = l34_1
+                l5 = ''
+                flags_on = 2  # 2 - SYN, 4 - RST, 16 - ACK
+                flags_off = 1 | 4 | 16
+                params = params1
+                seq = seq1
+                ack = 0
+                seq1 += 1  # для пакетов с SYN в процессе инициализации (см. RFC)
+                state = 'O1'
+
+            elif state == 'O1':
+
+                l34 = l34_2
+                l5 = ''
+                flags_on = 2 | 16
+                flags_off = 1 | 4
+                seq = seq2
+                ack = seq1
+                params = params2
+                seq2 += 1
+                state = 'O2'
+
+            elif state == 'O2':
+
+                l34 = l34_1
+                l5 = ''
+                flags_on = 16
+                flags_off = 1 | 2 | 4
+                seq = seq1
+                ack = seq2
+                params = params1
+                state = 'E'
+
+            # передача данных
+            elif state == 'E':
+
+                flags_on = 16
+                flags_off = 1 | 2 | 4
+                l5 = self.generate_l5(params['flp'].random())
+                if random.random() > 0.5:
+                    l34 = l34_1
+                    seq = seq1
+                    ack = seq2
+                    params = params1
+                    seq1 += len(l5)
+                else:
+                    l34 = l34_2
+                    seq = seq2
+                    ack = seq1
+                    params = params2
+                    seq2 += len(l5)
+                if t >= t1:
+                    state = 'F1'
+
+            # завершение
+            elif state == 'F1':
+
+                l34 = l34_2
+                l5 = self.generate_l5(params['flp'].random())
+                flags_on = 1 | 16  # 1 - FIN
+                flags_off = 2 | 4
+                seq = seq2
+                ack = seq1
+                params = params2
+                seq2 += len(l5)
+                state = 'F2'
+
+            elif state == 'F2':
+                l34 = l34_1
+                l5 = self.generate_l5(params['flp'].random())
+                flags_on = 1 | 16
+                flags_off = 2 | 4
+                seq = seq1
+                ack = seq2
+                params = params1
+                seq1 += len(l5)
+                state = 'Q'
+
+            seq1 %= seq_mod  # сохранение в пределах допустимых значений
+            seq2 %= seq_mod
+
+            l34[TCP].flags |= flags_on
+            l34[TCP].flags &= ~flags_off
+            l34[TCP].seq = seq
+            l34[TCP].ack = ack
+            l34[IP].ttl = params['fttl'].random()
+
+            p = l34 / l5
+            p.time = t
+
+            packets.append(p)
+
+            tp = params['ftp'].random()
+            t += tp
+
+        return packets
+
+
+# =============================================================================
+
+class FlowUDP(FlowSock):
+
+    """
+    класс потока TCP
+    params = (port1, port2, node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf)
+    >>> ftp   = FTP([[1.0, 0.1]])
+    >>> flp   = FLP([[1.0, 100]])
+    >>> fttl  = FTTL([[1.0, 1]])
+    >>> ftf   = FTF([[1.0, 100]])
+    >>> f     = FlowUDP(9999, 42, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf)
+    >>> nets  = [('a', 'l'), ('b', 'r')]
+    >>> nodes = [0, 1]
+    >>> t     = Translator(nets, nodes)
+    >>> packs = f.generate(t, 42.0)
+    >>> 950 < len(packs) < 1050
+    True
+    >>> (packs[0][UDP].sport, packs[0][UDP].dport)
+    (9999, 42)
+    """
+
+    def __init__(self, *params):
+
+        super(FlowUDP, self).__init__(*params)
+
+    # -------------------------------------------------------------------------
+
+    def generate_l5(self, length):
+
+        l5 = 'A' * length
+        return l5
+
+    # -------------------------------------------------------------------------
+
+    def generate(self, translator, t0):
+
+        t1 = t0 + self.ftf.random()
+
+        ip1 = translator.node2ip[self.node1]
+        ip2 = translator.node2ip[self.node2]
+
+        l3_1 = IP(src=ip1, dst=ip2)
+        l4_1 = UDP(sport=self.port1, dport=self.port2)
+        l3_2 = IP(src=ip2, dst=ip1)
+        l4_2 = UDP(sport=self.port2, dport=self.port1)
+
+        l34_1 = l3_1 / l4_1
+        l34_2 = l3_2 / l4_2
+        params1 = {'ftp': self.ftp1, 'flp': self.flp1, 'fttl': self.fttl1}
+        params2 = {'ftp': self.ftp2, 'flp': self.flp2, 'fttl': self.fttl2}
+
+        packets = []
+        t = t0
+
+        l5 = self.generate_l5(self.flp1.random())
+        l34_1[IP].ttl = self.fttl1.random()
+        p = l34_1 / l5
+        p.time = t
+        packets.append(p)
+        tp = self.ftp1.random()
+        t += tp
+        while t < t1:
+            if random.random() > 0.5:
+                l34 = l34_1
+                params = params1
+            else:
+                l34 = l34_2
+                params = params2
+            l5 = self.generate_l5(params['flp'].random())
+            l34[IP].ttl = params['fttl'].random()
+            p = l34 / l5
+            p.time = t
+            packets.append(p)
+            tp = params['ftp'].random()
+            t += tp
+
+        return packets
+
+
+# =============================================================================
+
+class FlowICMP(Flow):
+    def __init__(self, *params):
+
+        """
+        params = (type1, type2, node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf):
+        """
+
+        parent_params = params[:2]
+        super(FlowSock, self).__init__(*parent_params)
+        self.type1 = params[0]
+        self.type2 = params[1]
+
+    # -------------------------------------------------------------------------
+
+    def generate(self, translator, t0):
+        return []
+
+# =============================================================================
+
+
+cls_ranges = {
+    'z': (0x00000000, 0),  # zero
+    'a': (0x01000000, 3),  # a
+    'l': (0x7F000000, 3),  # loopback
+    'b': (0x80000000, 2),  # b
+    'c': (0xc0000000, 1),  # c
+    'd': (0xe0000000, 3),  # d
+    'e': (0xf0000000, 3),  # e
+    'm': (0xffffffff, 0),  # multicast
+}
+
+# =============================================================================
+
