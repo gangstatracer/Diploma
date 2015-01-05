@@ -3,7 +3,6 @@ import random
 
 
 class FX(object):
-
     """
     универсальный класс ФРВ
     """
@@ -101,17 +100,18 @@ class FX(object):
 
     # -------------------------------------------------------------------------
 
+    def __repr__(self):
+        return str.format(
+            """
+Type: {0}
+Value: {1}-{2}
+Points: {3}
+Normalized points: {4}
+        """, self.v_type, self.v_from, self.v_to, self.points, self.points_normalized)
+
     @property
     def points_normalized(self):
         return map(lambda x: [x[0], float(x[1] - self.v_from) / self.v_delta], self.points)
-
-    # def __update_points_normalized(self):
-    #
-    #     """
-    #     обновить нормализованное представления точек ФРВ
-    #     """
-    #
-    #     self.points_normalized = map(lambda x: [x[0], float(x[1] - self.v_from) / self.v_delta], self.points)
 
     # -------------------------------------------------------------------------
 
@@ -166,7 +166,6 @@ class FX(object):
         # вероятность последней точки всегда = 1
         self.points[-1][0] = 1.0
         self.points.sort(key=lambda x: x[0])
-        self.points_normalized.sort(key=lambda x: x[0])
 
     # -------------------------------------------------------------------------
 
