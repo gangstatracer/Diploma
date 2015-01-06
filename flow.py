@@ -2,11 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from fx import *
-from scapy.layers.inet import TCP, IP, UDP
+from scapy.layers.inet import TCP, IP, UDP, ICMP
 
 
 class Flow(object):
-
     """
     универсальный класс потока, содержащий метод генерации своего трафика
     params = (node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf)
@@ -43,7 +42,6 @@ class Flow(object):
     # -------------------------------------------------------------------------
 
     def generate(self, translator, t0):
-
         """
         функция генерации
         translator - транслятор индексов узлов в сетевые адреса
@@ -56,7 +54,6 @@ class Flow(object):
 # =============================================================================
 
 class FlowSock(Flow):
-
     """
     класс потока, поддерживающего сокеты
     params = (port1, port2, node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf)
@@ -75,12 +72,16 @@ class FlowSock(Flow):
         self.port1 = params[0]
         self.port2 = params[1]
 
+    @staticmethod
+    def generate_l5(length):
+        l5 = 'A' * length
+        return l5
+
 
 # =============================================================================
 
 
 class FlowTCP(FlowSock):
-
     """
     класс потока TCP
     params = (port1, port2, node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf)
@@ -102,13 +103,6 @@ class FlowTCP(FlowSock):
     def __init__(self, *params):
 
         super(FlowTCP, self).__init__(*params)
-
-    # -------------------------------------------------------------------------
-
-    def generate_l5(self, length):
-
-        l5 = 'A' * length
-        return l5
 
     # -------------------------------------------------------------------------
 
@@ -244,7 +238,6 @@ class FlowTCP(FlowSock):
 # =============================================================================
 
 class FlowUDP(FlowSock):
-
     """
     класс потока TCP
     params = (port1, port2, node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf)
@@ -266,13 +259,6 @@ class FlowUDP(FlowSock):
     def __init__(self, *params):
 
         super(FlowUDP, self).__init__(*params)
-
-    # -------------------------------------------------------------------------
-
-    def generate_l5(self, length):
-
-        l5 = 'A' * length
-        return l5
 
     # -------------------------------------------------------------------------
 
@@ -325,7 +311,6 @@ class FlowUDP(FlowSock):
 
 class FlowICMP(Flow):
     def __init__(self, *params):
-
         """
         params = (type1, type2, node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf):
         """
@@ -338,7 +323,51 @@ class FlowICMP(Flow):
     # -------------------------------------------------------------------------
 
     def generate(self, translator, t0):
-        return []
+
+        ip1 = translator.node2ip[self.node1]
+        ip2 = translator.node2ip[self.node2]
+
+        l3_1 = IP(src=ip1, dst=ip2)
+        l4_1 = ICMP(type=self.type1)
+        l3_2 = IP(src=ip2, dst=ip1)
+        l4_2 = ICMP(type=self.type2)
+
+        l34_1 = l3_1 / l4_1
+        l34_2 = l3_2 / l4_2
+
+        params1 = {'ftp': self.ftp1, 'flp': self.flp1, 'fttl': self.fttl1}
+        params2 = {'ftp': self.ftp2, 'flp': self.flp2, 'fttl': self.fttl2}
+
+        # TODO
+        seq = 0
+        ack = 0
+
+        packets = []
+        t1 = t0 + self.ftf.random()
+        t = t0
+        while t < t1:
+            if random.randint(0, 1):
+                l34 = l34_1
+                params = params1
+                l34['ICMP'].seq = seq
+                ack = seq
+                seq += 1
+            else:
+                l34 = l34_2
+                params = params2
+                l34['ICMP'].ack = ack
+
+            tp = params['ftp'].random()
+
+            l5 = self.generate_l5(params['flp'].random())
+            l34['IP'].time = tp
+            l34['IP'].ttl = params['fttl']
+
+            packets.append(l34 / l5)
+
+            t += tp
+
+        return packets
 
 # =============================================================================
 
