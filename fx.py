@@ -121,19 +121,6 @@ Normalized points: {4}
 
         """
         случайная мутация значения (v) i-й точки
-        >>> f       = FX(10, 109, int, [[0.2, 42], [0.5, 10], [1.0, 13]])
-        >>> changed = False
-        >>> v0      = f.points[1][1]
-        >>> for i in xrange(1000):
-        ... 	f.__mutation_vi(1)
-        ... 	if v0 != f.points[1][1]:
-        ... 		changed = True
-        ... 	if not (f.v_from <= f.points[1][1] <= f.v_to):
-        ... 		raise ValueError
-        ... 	if float(f.points[1][1] - 10) / 100 != f.points_normalized[1][1]:
-        ... 		raise ValueError
-        >>> changed
-        True
         """
 
         self.points[i][1] = self.v_type(self.v_from + random.random() * self.v_delta)
@@ -145,23 +132,12 @@ Normalized points: {4}
 
         """
         случайная мутация вероятности (p) i-й точки
-        >>> f       = FX(10, 109, int, [[0.2, 42], [0.5, 10], [1.0, 13]])
-        >>> changed = False
-        >>> p0      = f.points[1][0]
-        >>> for i in xrange(1000):
-        ... 	f.__mutation_pi(1)
-        ... 	if p0 != f.points[1][0]:
-        ... 		changed = True
-        ... 	if not (0.0 <= f.points[1][0] <= 1.0):
-        ... 		raise ValueError
-        >>> changed
-        True
         """
-
+        # TODO: Все переделать
         # вычислить новую вероятность
         new_p = random.random() * 0.99  # должно быть < 1
         # нормализовать остальные
-        scale = (1. - self.points[i][0]) / 1. - new_p
+        scale = (1. - self.points[i][0]) / (1. - new_p)
         for pnt in self.points:
             pnt[0] /= scale
         self.points[i][0] = new_p
@@ -175,6 +151,17 @@ Normalized points: {4}
 
         """
         случайная мутация вероятностей (p) точек функции
+        >>> f       = FX(10, 109, int, [[0.2, 42], [0.5, 10], [1.0, 13]])
+        >>> changed = False
+        >>> p       = map(lambda point: point[0], f.points)
+        >>> f.mutation_p()
+        >>> for new_p in map(lambda point: point[0], f.points):
+        ... 	if not p.__contains__(new_p):
+        ... 		changed = True
+        ... 	if not (0.0 <= new_p <= 1.0):
+        ... 		raise ValueError
+        >>> changed
+        True
         """
 
         self.__mutation_pi(random.randint(0, len(self.points) - 1))
@@ -185,6 +172,19 @@ Normalized points: {4}
 
         """
         случайная мутация значений (v) точек функции
+        >>> f       = FX(10, 109, int, [[0.2, 42], [0.5, 10], [1.0, 13]])
+        >>> changed = False
+        >>> v      = map(lambda point: point[1], f.points)
+        >>> f.mutation_v()
+        >>> for i in xrange(len(f.points)):
+        ... 	if v[i]!=f.points[i][1]:
+        ... 		changed = True
+        ... 	if not (f.v_from <= f.points[i][1] <= f.v_to):
+        ... 		raise ValueError
+        ... 	if float(f.points[i][1] - 10) / 100 != f.points_normalized[i][1]:
+        ... 		raise ValueError
+        >>> changed
+        True
         """
 
         self.__mutation_vi(random.randint(0, len(self.points) - 1))
