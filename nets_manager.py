@@ -1,6 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from flow import cls_ranges
+
+cls_ranges = {
+    'z': (0x00000000, 0),  # zero
+    'a': (0x01000000, 3),  # a
+    'l': (0x7F000000, 3),  # loopback
+    'b': (0x80000000, 2),  # b
+    'c': (0xc0000000, 1),  # c
+    'd': (0xe0000000, 3),  # d
+    'e': (0xf0000000, 3),  # e
+    'm': (0xffffffff, 0),  # multicast
+}
+
+# =============================================================================
 
 
 class Translator:

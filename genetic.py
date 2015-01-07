@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from flow import Flow, cls_ranges
-
 from fx import *
 
 # =============================================================================
+from model import Model
 
 
 def main():

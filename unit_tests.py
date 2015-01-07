@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
 from fx import FHF, FX
+from nets_manager import Translator
+import re
 
 
 class TestFX(TestCase):
@@ -10,7 +12,7 @@ class TestFX(TestCase):
         counts = {}
         for i in xrange(10000):
             r = f.random()
-            if counts.has_key(r):
+            if r in counts.keys():
                 counts[r] += 1
             else:
                 counts[r] = 1
@@ -35,5 +37,17 @@ class TestFX(TestCase):
                 if f.points[-1][0] != 1.0:
                     raise ValueError("Последняя точка всегда 1.0")
         assert success
+
+
+class TestTranslator(TestCase):
+    def test_ip_generate(self):
+        nets = [('a', 'l'), ('b', 'r')]
+        nodes = [0, 1]
+        t = Translator(nets, nodes)
+        assert len(t.node2ip[0].split('.')) == 4
+        assert t.node2pos[1] == 'r'
+        assert t.ip2pos[t.node2ip[0]] == 'l'
+        pat = re.compile("\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}")
+        assert pat.match(t.node2ip[1])
 
 
