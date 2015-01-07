@@ -260,4 +260,8 @@ class FFlow(FX):
         super(FFlow, self).__init__(0, 1e6, int, points)
 
 
+class FHF(FX):
+    def __init__(self, points):
+        super(FHF, self).__init__(0, 1, int, points)
+
 # =============================================================================

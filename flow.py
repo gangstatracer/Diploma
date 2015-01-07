@@ -13,14 +13,13 @@ class Flow(object):
     >>> flp  = FLP([[1.0, 100]])
     >>> fttl = FTTL([[1.0, 1]])
     >>> ftf  = FTF([[1.0, 100]])
-    >>> f    = Flow(0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf)
+    >>> fhf = FHF([0.5,1])
+    >>> f    = Flow(0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf,fhf)
     """
-
-    # TODO: ВВЕСТИ FHF - ФРВ ПОЛУПОТОКА (НАПРАВЛЕНИЯ)
 
     def __init__(self, *params):
         param_types = map(lambda x: type(x), params)
-        if param_types != [int, int] + [FTP, FLP, FTTL] * 2 + [FTF]:
+        if param_types != [int, int] + [FTP, FLP, FTTL] * 2 + [FTF, FHF]:
             raise ValueError(params)
 
         self.node1 = params[0]
@@ -35,6 +34,7 @@ class Flow(object):
         self.fttl2 = params[7]
 
         self.ftf = params[8]
+        self.fhf = params[9]
 
         # массив ссылок на все ФРВ
         self.fxs = params[2:]
@@ -282,15 +282,8 @@ class FlowUDP(FlowSock):
         packets = []
         t = t0
 
-        l5 = self.generate_l5(self.flp1.random())
-        l34_1[IP].ttl = self.fttl1.random()
-        p = l34_1 / l5
-        p.time = t
-        packets.append(p)
-        tp = self.ftp1.random()
-        t += tp
         while t < t1:
-            if random.random() > 0.5:
+            if not self.fhf.random():
                 l34 = l34_1
                 params = params1
             else:
@@ -338,7 +331,6 @@ class FlowICMP(Flow):
         params1 = {'ftp': self.ftp1, 'flp': self.flp1, 'fttl': self.fttl1}
         params2 = {'ftp': self.ftp2, 'flp': self.flp2, 'fttl': self.fttl2}
 
-        # TODO
         seq = 0
         ack = 0
 
@@ -346,7 +338,7 @@ class FlowICMP(Flow):
         t1 = t0 + self.ftf.random()
         t = t0
         while t < t1:
-            if random.randint(0, 1):
+            if not self.fhf.random():
                 l34 = l34_1
                 params = params1
                 l34['ICMP'].seq = seq
