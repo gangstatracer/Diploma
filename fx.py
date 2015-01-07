@@ -196,15 +196,40 @@ Normalized points: {4}
         """
         случайная мутация точек функции
         может оказатся измененным как значение, так и вероятность
+        >>> f = FX(1, 100, int, [[0.2, 42], [1.0, 9]])
+        >>> old_points = f.points[:]
+        >>> f.mutation()
+        >>> success = False
+        >>> if len(f.points) != len(old_points):
+        ...     success = True
+        ... else:
+        ...     for i in xrange(len(f.points)):
+        ...         if (f.points[i][0] != old_points[i][0]) or (f.points[i][1] != old_points[i][1]):
+        ...             success = True
+        ...         if not (0.0 <= f.points[i][0] <= 1.0):
+        ...             raise ValueError, "Некорректное изменение вероятности"
+        ...         if not (f.v_from <= f.points[i][1] <= f.v_to):
+        ...             raise ValueError, "Некорректное изменение значения вероятности"
+        ...         if f.points[-1][0] != 1.0:
+        ...             raise ValueError, "Последняя точка всегда 1.0"
+        >>> success
+        True
         """
 
         # индекс точки
         i = random.randint(0, len(self.points) - 1)
-        # c вероятностью 0.5 мутация вероятности или значения
-        if random.randint(0, 1):
+
+        # c вероятностью 0.25 мутация вероятности или значения или количества
+        choice = random.randint(0, 3)
+
+        if choice == 0:
             self.__mutation_vi(i)
-        else:
+        elif choice == 1:
             self.__mutation_pi(i)
+        elif choice == 2:
+            self.__add_random_point()
+        else:
+            self.__remove_random_point()
 
     # -------------------------------------------------------------------------
 
@@ -231,6 +256,23 @@ Normalized points: {4}
         while r > self.points[i][0]:
             i += 1
         return self.points[i][1]
+
+    def __add_random_point(self):
+        """
+        добавляет случайно сгенерированную точку
+        """
+        new_p = random.random() * 0.99
+        new_v = self.v_type(self.v_from + random.random() * self.v_delta)
+        self.points += [[new_p, new_v]]
+        self.points.sort(key=lambda point: point[0])
+
+    def __remove_random_point(self):
+        """
+        удаляет случайную точку
+        """
+        if len(self.points) > 1:
+            del self.points[random.randint(0, len(self.points) - 1)]
+            self.points[-1][0] = 1.0
 
 
 # =============================================================================
