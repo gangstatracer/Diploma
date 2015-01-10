@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from flow import *
+from nets_manager import cls_ranges
 
 
 class Model:
