@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from unittest import TestCase
-from fx import FHF, FX
-from nets_manager import Translator
 import re
+
+from fx import FX
+from nets_manager import Translator
 
 
 class TestFX(TestCase):

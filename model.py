@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from flow import *
+from nets_manager import cls_ranges
 
 
 class Model:
@@ -46,8 +47,8 @@ class Model:
         node_range = set(xrange(len(nodes)))
         for f in flows:
             if not isinstance(f, Flow):
-                ValueError
-            if not (set([f.node1, f.node2]) < node_range):
+                raise ValueError
+            if not ({f.node1, f.node2} < node_range):
                 raise ValueError
         if (type(fflow) != FFlow) or (type(texp) != float):
             raise ValueError
