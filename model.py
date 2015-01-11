@@ -81,10 +81,7 @@ class Model:
         lfx = len(self.fxs)
         # значение = lfx означает мутацию ФРВ потоков (fflow)
         i = random.randint(0, lfx)
-        if i < lfx:
-            self.fxs[i].mutation()
-        else:
-            self.fflow.mutation_v()
+        self.genome[i].mutation()
 
     # -------------------------------------------------------------------------
 
