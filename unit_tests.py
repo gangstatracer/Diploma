@@ -3,9 +3,9 @@
 from unittest import TestCase
 
 from scapy.all import *
-from scapy.layers.inet import IP, UDP, TCP
+from scapy.layers.inet import IP, UDP, TCP, ICMP
 
-from flow import FlowUDP, FlowTCP
+from flow import FlowUDP, FlowTCP, FlowICMP
 from fx import *
 from nets_manager import Translator
 
@@ -93,5 +93,25 @@ class TestFlowTCP(TestCase):
         for p in packs:
             assert isinstance(p, IP)
             assert isinstance(p.payload, TCP)
+
+
+class TestFlowICMP(TestCase):
+    def test_generate(self):
+        ftp = FTP([[1.0, 0.1]])
+        flp = FLP([[1.0, 100]])
+        fttl = FTTL([[1.0, 1]])
+        ftf = FTF([[1.0, 100]])
+        fhf = FHF([[0.5,1]])
+        f = FlowICMP(0, 8, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf,fhf)
+
+        nets = [('a', 'l'), ('b', 'r')]
+        nodes = [0, 1]
+        t = Translator(nets, nodes)
+
+        packs = f.generate(translator=t, t0=0)
+        assert len(packs) > 0
+        for p in packs:
+            assert isinstance(p, IP)
+            assert isinstance(p.payload, ICMP)
 
 

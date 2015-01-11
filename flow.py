@@ -51,8 +51,13 @@ class Flow(object):
 
         return []
 
+    @staticmethod
+    def generate_l5(length):
+        l5 = 'A' * length
+        return l5
 
 # =============================================================================
+
 
 class FlowSock(Flow):
     """
@@ -72,12 +77,6 @@ class FlowSock(Flow):
             raise ValueError
         self.port1 = params[0]
         self.port2 = params[1]
-
-    @staticmethod
-    def generate_l5(length):
-        l5 = 'A' * length
-        return l5
-
 
 # =============================================================================
 
@@ -309,8 +308,14 @@ class FlowICMP(Flow):
         params = (type1, type2, node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf):
         """
 
-        parent_params = params[:2]
-        super(FlowSock, self).__init__(*parent_params)
+        parent_params = params[2:]
+        super(FlowICMP, self).__init__(*parent_params)
+
+        if not isinstance(params[0],int) or not isinstance(params[1],int):
+            raise TypeError
+        if not (0 <= params[0] <= 40) or not (0 <= params[1] <= 40):
+            raise ValueError
+
         self.type1 = params[0]
         self.type2 = params[1]
 
