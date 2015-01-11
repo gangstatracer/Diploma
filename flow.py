@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from fx import *
+from scapy.all import *
 from scapy.layers.inet import TCP, IP, UDP, ICMP
 
 
