@@ -56,7 +56,7 @@ class NetworkGenome(GenomeBase):
         g.nets = self.nets[:]
         g.nodes = self.nodes[:]
         g.flows = self.flows[:]
-        g.fflow = self.fflow
+        g.fflow = self.fflow.clone()
         g.texp = self.texp
 
         # ссылки на ФРВ всех вложенных потоков для ускорения доступа

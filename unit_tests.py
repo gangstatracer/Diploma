@@ -58,7 +58,6 @@ class TestFX(TestCase):
         assert isinstance(ftp2, FTP)
 
 
-
 class TestTranslator(TestCase):
     def test_ip_generate(self):
         nets = [('a', 'l'), ('b', 'r')]
