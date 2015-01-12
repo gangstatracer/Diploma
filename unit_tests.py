@@ -25,7 +25,9 @@ class TestFX(TestCase):
 
     def test_mutation(self):
         f = FX(1, 100, int, [[0.2, 42], [1.0, 9]])
-        old_points = f.points[:]
+        old_points = []
+        for p in f.points:
+            old_points.append(p[:])
         f.mutation()
         success = False
         if len(f.points) != len(old_points):

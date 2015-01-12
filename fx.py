@@ -220,16 +220,16 @@ Normalized points: {4}
         i = random.randint(0, len(self.points) - 1)
 
         # c вероятностью 0.25 мутация вероятности или значения или количества
-        choice = random.randint(0, 3)
-
+        choice = random.randint(0, 3 if len(self.points) > 1 else 2)
+        print choice
         if choice == 0:
             self.__mutation_vi(i)
         elif choice == 1:
-            self.__mutation_pi(i)
+            pass  # self.__mutation_pi(i)
         elif choice == 2:
             self.__add_random_point()
         else:
-            self.__remove_random_point()
+            self.__remove_point(i)
 
     # -------------------------------------------------------------------------
 
@@ -266,12 +266,12 @@ Normalized points: {4}
         self.points += [[new_p, new_v]]
         self.points.sort(key=lambda point: point[0])
 
-    def __remove_random_point(self):
+    def __remove_point(self, i):
         """
         удаляет случайную точку
         """
         if len(self.points) > 1:
-            del self.points[random.randint(0, len(self.points) - 1)]
+            del self.points[i]
             self.points[-1][0] = 1.0
 
     def copy(self, g):
