@@ -5,7 +5,7 @@ from unittest import TestCase
 from scapy.all import *
 from scapy.layers.inet import IP, UDP, TCP, ICMP
 
-from flow import FlowUDP, FlowTCP, FlowICMP
+from flow import FlowUDP, FlowTCP, FlowICMP, FlowSock
 from fx import *
 from nets_manager import Translator
 
@@ -55,14 +55,29 @@ class TestTranslator(TestCase):
         assert pat.match(t.node2ip[1])
 
 
+class TestFlowSock(TestCase):
+    def test_copy(self):
+        ftp = FTP([[1.0, 0.1]])
+        flp = FLP([[1.0, 100]])
+        fttl = FTTL([[1.0, 1]])
+        ftf = FTF([[1.0, 100]])
+        fhf = FHF([[0.5, 1]])
+        f = FlowSock(9999, 42, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf, fhf)
+        g = FlowSock(19, 20, 2, 3, ftp, flp, fttl, ftp, flp, fttl, ftf, fhf)
+        f.copy(g)
+        assert g.port1 == 9999
+        g.fhf.points = []
+        assert len(f.fhf.points)>0
+
+
 class TestFlowUdp(TestCase):
     def test_generate(self):
         ftp = FTP([[1.0, 0.1]])
         flp = FLP([[1.0, 100]])
         fttl = FTTL([[1.0, 1]])
         ftf = FTF([[1.0, 100]])
-        fhf = FHF([[0.5,1]])
-        f = FlowUDP(9999, 42, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf,fhf)
+        fhf = FHF([[0.5, 1]])
+        f = FlowUDP(9999, 42, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf, fhf)
 
         nets = [('a', 'l'), ('b', 'r')]
         nodes = [0, 1]
@@ -81,8 +96,8 @@ class TestFlowTCP(TestCase):
         flp = FLP([[1.0, 100]])
         fttl = FTTL([[1.0, 1]])
         ftf = FTF([[1.0, 100]])
-        fhf = FHF([[0.5,1]])
-        f = FlowTCP(9999, 42, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf,fhf)
+        fhf = FHF([[0.5, 1]])
+        f = FlowTCP(9999, 42, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf, fhf)
 
         nets = [('a', 'l'), ('b', 'r')]
         nodes = [0, 1]
@@ -101,8 +116,8 @@ class TestFlowICMP(TestCase):
         flp = FLP([[1.0, 100]])
         fttl = FTTL([[1.0, 1]])
         ftf = FTF([[1.0, 100]])
-        fhf = FHF([[0.5,1]])
-        f = FlowICMP(0, 8, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf,fhf)
+        fhf = FHF([[0.5, 1]])
+        f = FlowICMP(0, 8, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf, fhf)
 
         nets = [('a', 'l'), ('b', 'r')]
         nodes = [0, 1]

@@ -56,6 +56,28 @@ class Flow(object):
         l5 = 'A' * length
         return l5
 
+    def copy(self, g):
+        if not isinstance(g, Flow):
+            raise ValueError("Expected flow, got: {0}", type(g))
+
+        g.node1 = self.node1
+        g.node2 = self.node2
+
+        g.ftp1 = self.ftp1.clone()
+        g.flp1 = self.flp1.clone()
+        g.fttl1 = self.fttl1.clone()
+
+        g.ftp2 = self.ftp2.clone()
+        g.flp2 = self.flp2.clone()
+        g.fttl2 = self.fttl2.clone()
+
+        g.ftf = self.ftf.clone()
+        g.fhf = self.fhf.clone()
+
+        # массив ссылок на все ФРВ
+        g.fxs = [g.ftp1, g.flp1, g.fttl1, g.ftp2, g.flp2, g.fttl2, g.ftf, g.fhf]
+
+
 # =============================================================================
 
 
@@ -77,6 +99,15 @@ class FlowSock(Flow):
             raise ValueError
         self.port1 = params[0]
         self.port2 = params[1]
+
+    def copy(self, g):
+        if not isinstance(g, FlowSock):
+            raise ValueError("Expected FlowSock, got: {0}".format(type(g)))
+        super(FlowSock, self).copy(g)
+
+        g.port1 = self.port1
+        g.port2 = self.port2
+        return
 
 # =============================================================================
 
