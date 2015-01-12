@@ -42,6 +42,22 @@ class TestFX(TestCase):
                     raise ValueError("Последняя точка всегда 1.0")
         assert success
 
+    def test_copy(self):
+        ftp = FTP([[0,20]])
+        ftp2 = FTP([[1,3]])
+        ftp.copy(ftp2)
+        assert ftp2.points[0][1] == 20
+        ftp2.points[0][1] = 3
+
+        assert ftp.points[0][1] == 20
+        assert ftp.v_delta == ftp2.v_delta
+
+    def test_clone(self):
+        ftp = FTP([[0, 20]])
+        ftp2 = ftp.clone()
+        assert isinstance(ftp2, FTP)
+
+
 
 class TestTranslator(TestCase):
     def test_ip_generate(self):
