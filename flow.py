@@ -352,6 +352,15 @@ class FlowICMP(Flow):
 
     # -------------------------------------------------------------------------
 
+    def copy(self, g):
+        if not isinstance(g, FlowICMP):
+            raise TypeError("Expected FlowSock, got: {0}".format(type(g)))
+        super(FlowICMP, self).copy(g)
+
+        g.type1 = self.type1
+        g.type2 = self.type2
+        return
+
     def generate(self, translator, t0):
 
         ip1 = translator.node2ip[self.node1]
@@ -389,10 +398,10 @@ class FlowICMP(Flow):
             tp = params['ftp'].random()
 
             l5 = self.generate_l5(params['flp'].random())
-            l34['IP'].time = tp
-            l34['IP'].ttl = params['fttl']
-
-            packets.append(l34 / l5)
+            l34['IP'].time = t
+            l34['IP'].ttl = params['fttl'].random()
+            p = l34 / l5
+            packets.append(p)
 
             t += tp
 

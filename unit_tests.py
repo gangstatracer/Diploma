@@ -43,8 +43,8 @@ class TestFX(TestCase):
         assert success
 
     def test_copy(self):
-        ftp = FTP([[0,20]])
-        ftp2 = FTP([[1,3]])
+        ftp = FTP([[0, 20]])
+        ftp2 = FTP([[1, 3]])
         ftp.copy(ftp2)
         assert ftp2.points[0][1] == 20
         ftp2.points[0][1] = 3
@@ -82,7 +82,7 @@ class TestFlowSock(TestCase):
         f.copy(g)
         assert g.port1 == 9999
         g.fhf.points = []
-        assert len(f.fhf.points)>0
+        assert len(f.fhf.points) > 0
 
 
 class TestFlowUdp(TestCase):
