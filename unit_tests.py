@@ -86,6 +86,19 @@ class TestFlowSock(TestCase):
         g.fhf.points = []
         assert len(f.fhf.points) > 0
 
+    def test_clone(self):
+        ftp = FTP([[1.0, 0.1]])
+        flp = FLP([[1.0, 100]])
+        fttl = FTTL([[1.0, 1]])
+        ftf = FTF([[1.0, 100]])
+        fhf = FHF([[0.5, 1]])
+        f = FlowSock(9999, 42, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf, fhf)
+        g = f.clone()
+        f.port1 = 12
+        assert g.port1 == 9999
+        g.fhf.points = []
+        assert len(f.fhf.points) > 0
+
 
 class TestFlowUdp(TestCase):
     def test_generate(self):
@@ -145,5 +158,18 @@ class TestFlowICMP(TestCase):
         for p in packs:
             assert isinstance(p, IP)
             assert isinstance(p.payload, ICMP)
+
+    def test_clone(self):
+        ftp = FTP([[1.0, 0.1]])
+        flp = FLP([[1.0, 100]])
+        fttl = FTTL([[1.0, 1]])
+        ftf = FTF([[1.0, 100]])
+        fhf = FHF([[0.5, 1]])
+        f = FlowICMP(0, 1, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf, fhf)
+        g = f.clone()
+        f.type1 = 12
+        assert g.type1 == 0
+        g.fhf.points = []
+        assert len(f.fhf.points) > 0
 
 

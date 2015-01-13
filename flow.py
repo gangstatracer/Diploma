@@ -77,6 +77,12 @@ class Flow(object):
         # массив ссылок на все ФРВ
         g.fxs = [g.ftp1, g.flp1, g.fttl1, g.ftp2, g.flp2, g.fttl2, g.ftf, g.fhf]
 
+    def clone(self):
+        clone = Flow(self.node1, self.node2, self.ftp1, self.flp1, self.fttl1, self.ftp2, self.flp2, self.fttl2,
+                     self.ftf, self.fhf)
+        self.copy(clone)
+        return clone
+
 
 # =============================================================================
 
@@ -108,6 +114,13 @@ class FlowSock(Flow):
         g.port1 = self.port1
         g.port2 = self.port2
         return
+
+    def clone(self):
+        clone = type(self)(self.port1, self.port2, self.node1, self.node2, self.ftp1, self.flp1, self.fttl1, self.ftp2,
+                           self.flp2, self.fttl2, self.ftf, self.fhf)
+        self.copy(clone)
+        return clone
+
 
 # =============================================================================
 
@@ -342,7 +355,7 @@ class FlowICMP(Flow):
         parent_params = params[2:]
         super(FlowICMP, self).__init__(*parent_params)
 
-        if not isinstance(params[0],int) or not isinstance(params[1],int):
+        if not isinstance(params[0], int) or not isinstance(params[1], int):
             raise TypeError
         if not (0 <= params[0] <= 40) or not (0 <= params[1] <= 40):
             raise ValueError
@@ -360,6 +373,12 @@ class FlowICMP(Flow):
         g.type1 = self.type1
         g.type2 = self.type2
         return
+
+    def clone(self):
+        clone = FlowICMP(self.type1, self.type2, self.node1, self.node2, self.ftp1, self.flp1, self.fttl1, self.ftp2,
+                         self.flp2, self.fttl2, self.ftf, self.fhf)
+        self.copy(clone)
+        return clone
 
     def generate(self, translator, t0):
 
