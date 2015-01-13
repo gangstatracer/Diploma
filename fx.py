@@ -133,17 +133,17 @@ Normalized points: {4}
         """
         случайная мутация вероятности (p) i-й точки
         """
-        # TODO: Все переделать
+        # TODO: Уточнить
         # вычислить новую вероятность
         new_p = random.random() * 0.99  # должно быть < 1
         # нормализовать остальные
-        scale = (1. - self.points[i][0]) / (1. - new_p)
-        for pnt in self.points:
-            pnt[0] /= scale
+        # scale = (1. - self.points[i][0]) / (1. - new_p)
+        # for pnt in self.points:
+        #    pnt[0] /= scale
         self.points[i][0] = new_p
         # вероятность последней точки всегда = 1
-        self.points[-1][0] = 1.0
         self.points.sort(key=lambda x: x[0])
+        self.points[-1][0] = 1.0
 
     # -------------------------------------------------------------------------
 
@@ -225,7 +225,7 @@ Normalized points: {4}
         if choice == 0:
             self.__mutation_vi(i)
         elif choice == 1:
-            pass  # self.__mutation_pi(i)
+            self.__mutation_pi(i)
         elif choice == 2:
             self.__add_random_point()
         else:
