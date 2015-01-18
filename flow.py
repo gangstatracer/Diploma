@@ -95,7 +95,7 @@ class FlowSock(Flow):
     >>> flp  = FLP([[1.0, 100]])
     >>> fttl = FTTL([[1.0, 1]])
     >>> ftf  = FTF([[1.0, 100]])
-    >>> f    = FlowSock(9999, 42, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf)
+    >>> f    = FlowSock(9999, 42, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf,fhf)
     """
 
     def __init__(self, *params):
@@ -120,6 +120,15 @@ class FlowSock(Flow):
                            self.flp2, self.fttl2, self.ftf, self.fhf)
         self.copy(clone)
         return clone
+
+    def mutation(self):
+        mutation_index = random.randint(0, len(self.fxs) + 1)
+        if mutation_index == len(self.fxs):  # мутирует порт1
+            self.port1 = random.randint(0, 2 ** 16 - 1)
+        if mutation_index > len(self.fxs):  # мутирует порт2
+            self.port2 = random.randint(0, 2 ** 16 - 1)
+        else:
+            self.fxs[mutation_index].mutation()
 
 
 # =============================================================================
@@ -349,7 +358,7 @@ class FlowUDP(FlowSock):
 class FlowICMP(Flow):
     def __init__(self, *params):
         """
-        params = (type1, type2, node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf):
+        params = (type1, type2, node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf,fhf):
         """
 
         parent_params = params[2:]
@@ -364,6 +373,15 @@ class FlowICMP(Flow):
         self.type2 = params[1]
 
     # -------------------------------------------------------------------------
+
+    def mutation(self):
+        mutation_index = random.randint(0, len(self.fxs) + 1)
+        if mutation_index == len(self.fxs):  # мутирует тип1
+            self.type1 = random.randint(0, 40)
+        if mutation_index > len(self.fxs):  # мутирует тип2
+            self.type2 = random.randint(0, 40)
+        else:
+            self.fxs[mutation_index].mutation()
 
     def copy(self, g):
         if not isinstance(g, FlowICMP):

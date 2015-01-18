@@ -299,6 +299,15 @@ Normalized points: {4}
         self.copy(new_instance)
         return new_instance
 
+    def random_initialize(self):
+        fflow_points_count = random.randint(0, 10)
+        new_points = []
+        for i in xrange(fflow_points_count):
+            v = self.v_from + random.random() * self.v_delta
+            p = random.random()
+            new_points.append([p, v])
+        self.load(new_points)
+
 
 # =============================================================================
 

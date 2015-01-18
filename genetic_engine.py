@@ -3,7 +3,7 @@
 import random
 
 from pyevolve import GenomeBase, Util
-from flow import Flow
+from flow import Flow, FlowICMP, FlowTCP, FlowUDP
 from fx import FFlow
 from nets_manager import cls_ranges
 
@@ -12,6 +12,7 @@ class NetworkGenome(GenomeBase):
     """
     Класс, представляющий собой модель реальной сети, для эволюционирования в pyevolve
     """
+
     def __init__(self, nets, nodes, flows, fflow, texp):
         super(NetworkGenome, self).__init__()
 
@@ -50,7 +51,7 @@ class NetworkGenome(GenomeBase):
         self.initializator.set(network_initializer)
         self.mutator.set(network_mutator)
         self.crossover.set(network_crossover)
-        self.evaluator.set(network_tester)
+        self.evaluator.set(network_random_tester)
 
     # Реализация контракта pyevolve
     def copy(self, g):
@@ -75,6 +76,13 @@ class NetworkGenome(GenomeBase):
 
 
 def network_mutator(genome, **args):
+    """
+    В сети может мутировать:
+    1) какой либо поток (в т.ч добавиться новый или пропасть старый)
+    2) время жизни
+    3) количество узлов
+    # TODO: список обдумать
+    """
     if args["pmut"] <= 0.0:
         return 0
     list_size = len(genome)
@@ -123,13 +131,31 @@ def network_crossover(genome, **args):
 
 
 def network_initializer(genome, **args):
-    for i in xrange(len(genome)):
-        genome = 1  # TODO rand_init(genome, i)
+    """
+    Функция создания новой произвольнй сети
+    """
+    # def __init__(self, nets, nodes, flows, fflow, texp): - сигнатура конструктора
+    nets = 1  # TODO
+    nodes = 1  # TODO
+    flows = 1  # TODO
+    fflow = FFlow().random_initialize()
+    texp = random.randint(0, 42)  # TODO: заменить на константу или рандом какой-то
+    genome = NetworkGenome(nets, nodes, flows, fflow, texp)
 
 
-def network_tester(genome):
-    # TODO
+def random_flow():
+    # выбираем тип потока - равновероятно
+    choice = random.randint(0, 2)
+    if choice == 0:
+        return FlowICMP(random.randint(0, 40), random.randint(0, 40), 0, 1, )
+    if choice == 1:
+        return FlowTCP()
+    else:
+        return FlowUDP()
+
+
+def network_random_tester(genome):
     score = 0.0
-
+    score = float(random.random(100))
     return score
 
