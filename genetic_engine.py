@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import random
 
 from pyevolve import GenomeBase, Util
 from flow import Flow
@@ -95,7 +96,7 @@ def network_mutator(genome, **args):
 
 
 def network_crossover(genome, **args):
-    # TODO
+    # TODO: подумать
     g_mom = args["mom"]
     g_dad = args["dad"]
 
@@ -104,11 +105,19 @@ def network_crossover(genome, **args):
     sister.resetStats()
     brother.resetStats()
 
-    for i in xrange(len(g_mom)):
-        if Util.randomFlipCoin(0.5):
-            temp = sister[i]
-            sister[i] = brother[i]
-            brother[i] = temp
+    if random.randint(0, 1):
+        sister.fflow, brother.fflow = brother.fflow, sister.fflow
+    if random.randint(0, 1):
+        sister.texp, brother.texp = brother.texp, sister.texp
+    # одноточечный кроссовер функций распределения
+
+    cross = random.randint(0, min(len(sister.flows) - 1, len(brother.flows) - 1))
+
+    s_flows = sister.flows[:cross] + brother[cross:]
+    b_flows = brother.flows[:cross] + sister[cross:]
+
+    sister.flows = s_flows
+    brother.flows = b_flows
 
     return sister, brother
 
