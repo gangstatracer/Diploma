@@ -87,6 +87,8 @@ class FX(object):
         ...
         ValueError
         """
+        if len(points) < 1:
+            raise ValueError
 
         self.points = []
         seen = set()
@@ -300,13 +302,14 @@ Normalized points: {4}
         return new_instance
 
     def random_initialize(self):
-        fflow_points_count = random.randint(0, 10)
+        fflow_points_count = random.randint(1, 10)
         new_points = []
         for i in xrange(fflow_points_count):
-            v = self.v_from + random.random() * self.v_delta
-            p = random.random()
+            v = self.v_type(self.v_from + random.random() * self.v_delta)
+            p = random.random() * 0.99
             new_points.append([p, v])
         self.load(new_points)
+        return self
 
 
 # =============================================================================

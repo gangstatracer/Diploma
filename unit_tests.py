@@ -7,6 +7,7 @@ from scapy.layers.inet import IP, UDP, TCP, ICMP
 
 from flow import FlowUDP, FlowTCP, FlowICMP, FlowSock
 from fx import *
+from genetic_engine import NetworkGenome, network_initializer
 from nets_manager import Translator
 
 
@@ -171,5 +172,41 @@ class TestFlowICMP(TestCase):
         assert g.type1 == 0
         g.fhf.points = []
         assert len(f.fhf.points) > 0
+
+
+class TestNetworkGenome(TestCase):
+    def test_clone(self):
+        fflow = FFlow([[0.1, 1], [0.3, 2], [0.5, 3], [1.0, 4]])
+
+        ftp = FTP([[0.1, 10], [0.2, 20], [0.8, 40], [1.0, 60]])
+        flp1 = FLP([[0.1, 110], [0.3, 220], [0.5, 330], [1.0, 440]])
+        flp2 = FLP([[0.1, 110], [0.3, 220], [0.7, 330], [1.0, 440]])
+        fttl = FTTL([[0.1, 0], [0.3, 5], [0.5, 15], [1.0, 25]])
+        ftf = FTF([[0.2, 1000], [0.3, 2000], [0.6, 3000], [1.0, 4000]])
+        fhf = FHF([[0.5, 1]])
+
+        f1 = FlowUDP(9995, 42, 0, 1, ftp, flp1, fttl, ftp, flp2, fttl, ftf, fhf)
+        f2 = FlowUDP(9999, 40, 0, 2, ftp, flp2, fttl, ftp, flp1, fttl, ftf, fhf)
+        f3 = FlowTCP(123, 456, 1, 2, ftp, flp1, fttl, ftp, flp2, fttl, ftf, fhf)
+        f4 = FlowTCP(8899, 9800, 2, 0, ftp, flp2, fttl, ftp, flp1, fttl, ftf, fhf)
+
+        flows = [f1, f2, f3, f4]
+        nets = [('a', 'l'), ('b', 'r'), ('a', 'r')]
+        nodes = [0, 1, 2, 0]
+
+        o1 = NetworkGenome(nets, nodes, flows, fflow, 42.0)
+        o2 = o1.clone()
+
+        assert len(o2.nets) == 3
+        o2.nets[1] = ('b', 'l')
+        assert o1.nets[1][1] == 'r'
+
+    def test_network_initializer(self):
+
+        net = network_initializer(None)
+        assert isinstance(net, NetworkGenome)
+
+
+
 
 

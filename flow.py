@@ -475,5 +475,21 @@ class FlowICMP(Flow):
 
         return packets
 
+
 # =============================================================================
+
+
+def random_flow(node1, node2):
+    params = [node1, node2, FTP().random_initialize(), FLP().random_initialize(), FTTL().random_initialize(),
+              FTP().random_initialize(), FLP().random_initialize(), FTTL().random_initialize(),
+              FTF().random_initialize(), FHF().random_initialize()]
+    # выбираем тип потока - равновероятно
+    choice = 0  # random.randint(0, 2)
+    if choice == 0:
+        params = [FlowICMP.random_type(), FlowICMP.random_type()]+params
+        return FlowICMP(*params)
+    if choice == 1:
+        return FlowTCP([FlowSock.random_port(), FlowSock.random_port()]+params)
+    else:
+        return FlowUDP([FlowSock.random_port(), FlowSock.random_port()]+params)
 

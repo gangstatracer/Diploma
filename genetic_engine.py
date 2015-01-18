@@ -3,18 +3,19 @@
 import random
 
 from pyevolve import GenomeBase, Util
-from flow import Flow, FlowICMP, FlowTCP, FlowUDP
+from flow import Flow, FlowICMP, FlowTCP, FlowUDP, random_flow
 from fx import FFlow
 from nets_manager import cls_ranges
 
 
-class NetworkGenome(GenomeBase):
+class NetworkGenome(GenomeBase.GenomeBase):
     """
     Класс, представляющий собой модель реальной сети, для эволюционирования в pyevolve
     """
 
     def __init__(self, nets, nodes, flows, fflow, texp):
-        super(NetworkGenome, self).__init__()
+
+        GenomeBase.GenomeBase.__init__(self)
 
         cls_names = cls_ranges.keys()
         dirs = ('l', 'r')
@@ -134,7 +135,7 @@ def network_initializer(genome, **args):
     """
     Функция создания новой произвольнй сети
     """
-    # def __init__(self, nets, nodes, flows, fflow, texp): - сигнатура конструктора
+
     nets = []
     for net in xrange(0, 10):  # TODO
         nets.append([random.choice(cls_ranges.keys()), 'l' if random.randint(0, 1) else 'r'])
@@ -145,24 +146,14 @@ def network_initializer(genome, **args):
 
     flows = []
     for f in xrange(random.randint(0, 10)):  # TODO
-        flows.append(random_flow(random.randint(0, len(nodes)-1), random.randint(0, len(nodes) - 1)))
+        flows.append(random_flow(random.randint(0, len(nodes) - 1), random.randint(0, len(nodes) - 1)))
+
     fflow = FFlow().random_initialize()
 
-    texp = random.randint(0, 100)  # TODO
+    texp = random.random() * 100  # TODO
     genome = NetworkGenome(nets, nodes, flows, fflow, texp)
 
     return genome
-
-
-def random_flow(node1, node2):
-    # выбираем тип потока - равновероятно
-    choice = random.randint(0, 2)
-    if choice == 0:
-        return FlowICMP().random_initialize(node1, node2)
-    if choice == 1:
-        return FlowTCP().random_initialize(node1, node2)
-    else:
-        return FlowUDP().random_initialize(node1, node2)
 
 
 def network_random_tester(genome):
