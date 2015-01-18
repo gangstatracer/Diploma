@@ -83,6 +83,19 @@ class Flow(object):
         self.copy(clone)
         return clone
 
+    def random_initialize(self, node1, node2):
+
+        self.ftp1 = FTP().random_initialize()
+        self.flp1 = FLP().random_initialize()
+        self.fttl1 = FTTL().random_initialize()
+
+        self.ftp2 = FTP().random_initialize()
+        self.flp2 = FLP().random_initialize()
+        self.fttl2 = FTTL().random_initialize()
+
+        self.ftf = FTF().random_initialize()
+        self.fhf = FHF().random_initialize()
+
 
 # =============================================================================
 
@@ -121,14 +134,23 @@ class FlowSock(Flow):
         self.copy(clone)
         return clone
 
+    @staticmethod
+    def random_port():
+        return random.randint(0, 2 ** 16 - 1)
+
     def mutation(self):
         mutation_index = random.randint(0, len(self.fxs) + 1)
         if mutation_index == len(self.fxs):  # мутирует порт1
-            self.port1 = random.randint(0, 2 ** 16 - 1)
+            self.port1 = self.random_port()
         if mutation_index > len(self.fxs):  # мутирует порт2
-            self.port2 = random.randint(0, 2 ** 16 - 1)
+            self.port2 = self.random_port()
         else:
             self.fxs[mutation_index].mutation()
+
+    def random_initialize(self, node1, node2):
+        Flow.random_initialize(self, node1, node2)
+        self.port1 = self.random_port()
+        self.port2 = self.random_port()
 
 
 # =============================================================================
@@ -374,14 +396,23 @@ class FlowICMP(Flow):
 
     # -------------------------------------------------------------------------
 
+    @staticmethod
+    def random_type():
+        return random.randint(0, 40)
+
     def mutation(self):
         mutation_index = random.randint(0, len(self.fxs) + 1)
         if mutation_index == len(self.fxs):  # мутирует тип1
-            self.type1 = random.randint(0, 40)
+            self.type1 = self.random_type()
         if mutation_index > len(self.fxs):  # мутирует тип2
-            self.type2 = random.randint(0, 40)
+            self.type2 = self.random_type()
         else:
             self.fxs[mutation_index].mutation()
+
+    def random_initialize(self, node1, node2):
+        Flow.random_initialize(self, node1, node2)
+        self.type1 = self.random_type()
+        self.type2 = self.random_type()
 
     def copy(self, g):
         if not isinstance(g, FlowICMP):

@@ -135,23 +135,34 @@ def network_initializer(genome, **args):
     Функция создания новой произвольнй сети
     """
     # def __init__(self, nets, nodes, flows, fflow, texp): - сигнатура конструктора
-    nets = 1  # TODO
-    nodes = 1  # TODO
-    flows = 1  # TODO
+    nets = []
+    for net in xrange(0, 10):  # TODO
+        nets.append([random.choice(cls_ranges.keys()), 'l' if random.randint(0, 1) else 'r'])
+
+    nodes = []
+    for node in xrange(0, 100):  # TODO
+        nodes.append(random.randint(0, len(nets) - 1))
+
+    flows = []
+    for f in xrange(random.randint(0, 10)):  # TODO
+        flows.append(random_flow(random.randint(0, len(nodes)-1), random.randint(0, len(nodes) - 1)))
     fflow = FFlow().random_initialize()
-    texp = random.randint(0, 42)  # TODO: заменить на константу или рандом какой-то
+
+    texp = random.randint(0, 100)  # TODO
     genome = NetworkGenome(nets, nodes, flows, fflow, texp)
 
+    return genome
 
-def random_flow():
+
+def random_flow(node1, node2):
     # выбираем тип потока - равновероятно
     choice = random.randint(0, 2)
     if choice == 0:
-        return FlowICMP(random.randint(0, 40), random.randint(0, 40), 0, 1, )
+        return FlowICMP().random_initialize(node1, node2)
     if choice == 1:
-        return FlowTCP()
+        return FlowTCP().random_initialize(node1, node2)
     else:
-        return FlowUDP()
+        return FlowUDP().random_initialize(node1, node2)
 
 
 def network_random_tester(genome):
