@@ -3,7 +3,7 @@
 import random
 
 from pyevolve import GenomeBase, Util
-from flow import Flow, FlowICMP, FlowTCP, FlowUDP, random_flow
+from flow import Flow, random_flow
 from fx import FFlow
 from nets_manager import cls_ranges
 
@@ -48,7 +48,6 @@ class NetworkGenome(GenomeBase.GenomeBase):
         # полный геном организма
         self.genome = self.fxs + [self.fflow]
 
-        # TODO: реализовать операции над особями
         self.initializator.set(network_initializer)
         self.mutator.set(network_mutator)
         self.crossover.set(network_crossover)
@@ -105,7 +104,6 @@ def network_mutator(genome, **args):
 
 
 def network_crossover(genome, **args):
-    # TODO: подумать
     g_mom = args["mom"]
     g_dad = args["dad"]
 
@@ -122,13 +120,67 @@ def network_crossover(genome, **args):
 
     cross = random.randint(0, min(len(sister.flows) - 1, len(brother.flows) - 1))
 
+    # формируем геном сестры
     s_flows = sister.flows[:cross] + brother[cross:]
-    b_flows = brother.flows[:cross] + sister[cross:]
-
+    sister.nets, sister.nodes = translate_nodes_and_nets(s_flows, sister.nodes, brother.nodes, sister.nets,
+                                                         brother.nets, lambda x: 's' if x < cross else 'b')
     sister.flows = s_flows
+
+    # формируем геном брата
+    b_flows = brother.flows[:cross] + sister[cross:]
+    brother.nets, brother.nodes = translate_nodes_and_nets(b_flows, sister.nodes, brother.nodes, sister.nets,
+                                                           brother.nets, lambda x: 'b' if x < cross else 's')
     brother.flows = b_flows
 
     return sister, brother
+
+
+def translate_nodes_and_nets(flows, sister_nodes, brother_nodes, sister_nets, brother_nets, lambda_flag):
+    b_nodes = []
+    b_nets = []
+    node_dictionary = []
+
+    # транслируем узлы в новые
+    for i in xrange(len(flows) - 1):
+        flag = lambda_flag(i)
+        if not contains(node_dictionary, flows[i].node1, flag):
+            node_dictionary.append([flows[i].node1, flag])
+        flows[i].node1 = index_of(node_dictionary, flows[i].node1, flag)
+
+        if not contains(node_dictionary, flows[i].node2, flag):
+            node_dictionary.append([flows[i].node2, flag])
+        flows[i].node2 = index_of(node_dictionary, flows[i].node2, flag)
+
+    net_dictionary = []
+    # копируем сетки для узлов
+    for i in xrange(len(node_dictionary) - 1):
+        flag = node_dictionary[i][1]
+        nodes = sister_nodes if flag == 's' else brother_nodes
+        nets = sister_nets if flag == 's' else brother_nets
+        old_index = nodes[node_dictionary[i][0]]
+        net = nets[old_index]
+        if contains(net_dictionary, old_index, flag):
+            b_nodes.append(index_of(net_dictionary, old_index, flag))
+        else:
+            net_dictionary.append([old_index, flag])
+            b_nets.append(net)
+        b_nodes.append(index_of(net_dictionary, old_index, flag))
+
+    return b_nets, b_nodes
+
+
+def index_of(lst, element, flag):
+    for i in xrange(len(lst) - 1):
+        if lst[i][0] == element and lst[i][1] == flag:
+            return i
+    return -1
+
+
+def contains(lst, element, flag):
+    for i in lst:
+        if i[0] == element and i[1] == flag:
+            return True
+    return False
 
 
 def network_initializer(genome, **args):
@@ -137,11 +189,11 @@ def network_initializer(genome, **args):
     """
 
     nets = []
-    for net in xrange(0, 10):  # TODO
+    for net in xrange(random.randint(1, 10)):  # TODO
         nets.append([random.choice(cls_ranges.keys()), 'l' if random.randint(0, 1) else 'r'])
 
     nodes = []
-    for node in xrange(0, 100):  # TODO
+    for node in xrange(random.randint(1, 100)):  # TODO
         nodes.append(random.randint(0, len(nets) - 1))
 
     flows = []
