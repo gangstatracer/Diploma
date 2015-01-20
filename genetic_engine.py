@@ -141,7 +141,7 @@ def translate_nodes_and_nets(flows, sister_nodes, brother_nodes, sister_nets, br
     node_dictionary = []
 
     # транслируем узлы в новые
-    for i in xrange(len(flows) - 1):
+    for i in xrange(len(flows)):
         flag = lambda_flag(i)
         if not contains(node_dictionary, flows[i].node1, flag):
             node_dictionary.append([flows[i].node1, flag])
@@ -153,7 +153,7 @@ def translate_nodes_and_nets(flows, sister_nodes, brother_nodes, sister_nets, br
 
     net_dictionary = []
     # копируем сетки для узлов
-    for i in xrange(len(node_dictionary) - 1):
+    for i in xrange(len(node_dictionary)):
         flag = node_dictionary[i][1]
         nodes = sister_nodes if flag == 's' else brother_nodes
         nets = sister_nets if flag == 's' else brother_nets
@@ -170,7 +170,7 @@ def translate_nodes_and_nets(flows, sister_nodes, brother_nodes, sister_nets, br
 
 
 def index_of(lst, element, flag):
-    for i in xrange(len(lst) - 1):
+    for i in xrange(len(lst)):
         if lst[i][0] == element and lst[i][1] == flag:
             return i
     return -1

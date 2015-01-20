@@ -206,7 +206,6 @@ class TestNetworkGenome(TestCase):
         assert isinstance(net, NetworkGenome)
 
     def test_translate_nodes_and_nets(self):
-        fflow = FFlow([[0.1, 1], [0.3, 2], [0.5, 3], [1.0, 4]])
 
         ftp = FTP([[0.1, 10], [0.2, 20], [0.8, 40], [1.0, 60]])
         flp1 = FLP([[0.1, 110], [0.3, 220], [0.5, 330], [1.0, 440]])
@@ -226,6 +225,7 @@ class TestNetworkGenome(TestCase):
         res_nets, res_nodes = translate_nodes_and_nets(flows, nodes, nodes, s_nets, b_nets,
                                                        lambda x: 's' if x < 2 else 'b')
         assert len(res_nets) == 4
+        assert len(res_nodes) == 4
 
 
 
