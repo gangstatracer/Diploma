@@ -49,7 +49,19 @@ class NetworkGenome(GenomeBase.GenomeBase):
         self.genome = self.fxs + [self.fflow]
 
         self.initializator.set(network_initializer)
+
+        # В сети может мутировать:
+        # 1) какой либо поток (в т.ч добавиться новый или пропасть старый)
+        # 2) время жизни
+        # 3) какой либо узел (сменить сеть, добавиться, удалиться)
+        # 4) какая-либо сеть (в т.ч. добавиться или удалиться)
+
+        self.mutator.setRandomApply(True)  # произвольным образом выбирается только один из мутаторов
         self.mutator.set(network_mutator)
+        self.mutator.set(node_mutator)
+        self.mutator.set(texp_mutator)
+        self.mutator.set(flow_mutator)
+
         self.crossover.set(network_crossover)
         self.evaluator.set(network_random_tester)
 
@@ -76,31 +88,73 @@ class NetworkGenome(GenomeBase.GenomeBase):
 
 
 def network_mutator(genome, **args):
-    """
-    В сети может мутировать:
-    1) какой либо поток (в т.ч добавиться новый или пропасть старый)
-    2) время жизни
-    3) количество узлов
-    # TODO: список обдумать
-    """
-    if args["pmut"] <= 0.0:
-        return 0
-    list_size = len(genome)
-    mutations = args["pmut"] * list_size
+    choice = random.randint(0, len(genome.nets) + 1)
 
-    if mutations < 1.0:
-        mutations = 0
-        for it in xrange(list_size):
-            if Util.randomFlipCoin(args["pmut"]):
-                genome[it] = 1  # TODO rand_init(genome, it)
-            mutations += 1
+    if choice < len(genome.nets):
+        if random.randint(0, 1):
+            genome.nets[choice][0] = random.choice(cls_ranges.keys())
+        else:
+            genome.nets[choice][0] = 'l' if random.randint(0, 1) else 'r'
+
+    elif choice == len(genome.nodes):
+        genome.nets.append([random.choice(cls_ranges.keys()), 'l' if random.randint(0, 1) else 'r'])
 
     else:
-        for it in xrange(int(round(mutations))):
-            which_gene = 1  # TODO rand_randint(0, list_size - 1)
-            genome[which_gene] = 1  # TODO rand_init(genome, which_gene)
+        net_to_del = random.randint(0, len(genome.nets) - 1)
+        del genome.nets[net_to_del]
+        # вместе с сетью нужно удалить узлы и потоки
+        deleted_nodes = []
+        for n in xrange(len(genome.nodes)):
+            if genome.nodes[n] == net_to_del:
+                deleted_nodes.append(n)
 
-    return mutations
+        for n in deleted_nodes:
+            del genome.nodes[n]
+
+        for f in genome.flows:
+            if f.node1 in deleted_nodes or f.node2 in deleted_nodes:
+                del genome.flows[genome.flows.index(f)]
+
+    return 1
+
+
+def node_mutator(genome, **args):
+    choice = random.randint(0, len(genome.nodes) + 1)
+
+    if choice < len(genome.nodes):
+        genome.nodes[choice] = random.choice(genome.nets)
+
+    elif choice == len(genome.nodes):
+        genome.nodes.append(random.choice(genome.nets))
+    else:
+        node_to_del = random.randint(0, len(genome.nodes) - 1)
+        # вместе с узлом нужно удалить и все его потоки
+        for f in genome.flows:
+            if f.node1 == node_to_del or f.node2 == node_to_del:
+                del genome.flows[genome.flows.index(f)]
+        del genome.nodes[node_to_del]
+
+    return 1
+
+
+def texp_mutator(genome, **args):
+    old = genome.texp
+    while old == genome.texp:
+        genome.texp = random.random() * 100
+    return 1
+
+
+def flow_mutator(genome, **args):
+    choice = random.randint(0, len(genome.flows) + 1)
+    if choice < len(genome.flows):
+        genome.flows[choice].mutation()
+    elif choice == len(genome.flows):
+        genome.flows.append(
+            random_flow(random.randint(0, len(genome.nodes) - 1), random.randint(0, len(genome.nodes) - 1)))
+    else:
+        del genome.flows[random.randint(0, len(genome.flows) - 1)]
+
+    return 1
 
 
 def network_crossover(genome, **args):
@@ -143,13 +197,13 @@ def translate_nodes_and_nets(flows, sister_nodes, brother_nodes, sister_nets, br
     # транслируем узлы в новые
     for i in xrange(len(flows)):
         flag = lambda_flag(i)
-        if not contains(node_dictionary, flows[i].node1, flag):
+        if [flows[i].node1, flag] not in node_dictionary:
             node_dictionary.append([flows[i].node1, flag])
-        flows[i].node1 = index_of(node_dictionary, flows[i].node1, flag)
+        flows[i].node1 = node_dictionary.index([flows[i].node1, flag])
 
-        if not contains(node_dictionary, flows[i].node2, flag):
+        if [flows[i].node2, flag] not in node_dictionary:
             node_dictionary.append([flows[i].node2, flag])
-        flows[i].node2 = index_of(node_dictionary, flows[i].node2, flag)
+        flows[i].node2 = node_dictionary.index([flows[i].node2, flag])
 
     net_dictionary = []
     # копируем сетки для узлов
@@ -159,28 +213,11 @@ def translate_nodes_and_nets(flows, sister_nodes, brother_nodes, sister_nets, br
         nets = sister_nets if flag == 's' else brother_nets
         old_index = nodes[node_dictionary[i][0]]
         net = nets[old_index]
-        if contains(net_dictionary, old_index, flag):
-            b_nodes.append(index_of(net_dictionary, old_index, flag))
-        else:
+        if [old_index, flag] not in net_dictionary:
             net_dictionary.append([old_index, flag])
             b_nets.append(net)
-        b_nodes.append(index_of(net_dictionary, old_index, flag))
-
+        b_nodes.append(net_dictionary.index([old_index, flag]))
     return b_nets, b_nodes
-
-
-def index_of(lst, element, flag):
-    for i in xrange(len(lst)):
-        if lst[i][0] == element and lst[i][1] == flag:
-            return i
-    return -1
-
-
-def contains(lst, element, flag):
-    for i in lst:
-        if i[0] == element and i[1] == flag:
-            return True
-    return False
 
 
 def network_initializer(genome, **args):
@@ -197,7 +234,7 @@ def network_initializer(genome, **args):
         nodes.append(random.randint(0, len(nets) - 1))
 
     flows = []
-    for f in xrange(random.randint(0, 10)):  # TODO
+    for f in xrange(random.randint(1, 10)):  # TODO
         flows.append(random_flow(random.randint(0, len(nodes) - 1), random.randint(0, len(nodes) - 1)))
 
     fflow = FFlow().random_initialize()

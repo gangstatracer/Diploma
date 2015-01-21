@@ -227,6 +227,6 @@ class TestNetworkGenome(TestCase):
         assert len(res_nets) == 4
         assert len(res_nodes) == 4
 
-
+    # TODO write mutators tests
 
 
