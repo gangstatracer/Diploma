@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from fx import *
+from scapy.all import *
 from scapy.layers.inet import TCP, IP, UDP, ICMP
 
 
@@ -50,6 +51,9 @@ class Flow(object):
 
         return []
 
+    def mutation(self):
+        pass
+
 
 # =============================================================================
 
@@ -76,6 +80,15 @@ class FlowSock(Flow):
     def generate_l5(length):
         l5 = 'A' * length
         return l5
+
+    def mutation(self):
+        """
+        Мутация потока: с вероятностью 50% один из портов меняется на случайный
+        """
+        if random.randint(0, 1):
+            self.port1 = random.randint(0, 2 ** 16 - 1)
+        else:
+            self.port2 = random.randint(0, 2 ** 16 - 1)
 
 
 # =============================================================================

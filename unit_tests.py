@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
 import re
+from flow import FlowSock
 
-from fx import FX
+from fx import *
 from nets_manager import Translator
 
 
@@ -50,5 +51,22 @@ class TestTranslator(TestCase):
         assert t.ip2pos[t.node2ip[0]] == 'l'
         pat = re.compile("\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}")
         assert pat.match(t.node2ip[1])
+
+
+class TestFlowSock(TestCase):
+    def test_generate(self):
+        ftp = FTP([[1.0, 0.1]])
+        flp = FLP([[1.0, 100]])
+        fttl = FTTL([[1.0, 1]])
+        ftf = FTF([[1.0, 100]])
+        f = FlowSock(9999, 42, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf)
+
+        nets = [('a', 'l'), ('b', 'r')]
+        nodes = [0, 1]
+        t = Translator(nets, nodes)
+
+        packs = f.generate(translator=t, t0=0)
+        assert len(packs) > 0
+
 
 
