@@ -51,11 +51,54 @@ class Flow(object):
 
         return []
 
-    def mutation(self):
-        pass
+    @staticmethod
+    def generate_l5(length):
+        l5 = 'A' * length
+        return l5
+
+    def copy(self, g):
+        if not isinstance(g, Flow):
+            raise ValueError("Expected flow, got: {0}", type(g))
+
+        g.node1 = self.node1
+        g.node2 = self.node2
+
+        g.ftp1 = self.ftp1.clone()
+        g.flp1 = self.flp1.clone()
+        g.fttl1 = self.fttl1.clone()
+
+        g.ftp2 = self.ftp2.clone()
+        g.flp2 = self.flp2.clone()
+        g.fttl2 = self.fttl2.clone()
+
+        g.ftf = self.ftf.clone()
+        g.fhf = self.fhf.clone()
+
+        # массив ссылок на все ФРВ
+        g.fxs = [g.ftp1, g.flp1, g.fttl1, g.ftp2, g.flp2, g.fttl2, g.ftf, g.fhf]
+
+    def clone(self):
+        clone = Flow(self.node1, self.node2, self.ftp1, self.flp1, self.fttl1, self.ftp2, self.flp2, self.fttl2,
+                     self.ftf, self.fhf)
+        self.copy(clone)
+        return clone
+
+    def random_initialize(self, node1, node2):
+
+        self.ftp1 = FTP().random_initialize()
+        self.flp1 = FLP().random_initialize()
+        self.fttl1 = FTTL().random_initialize()
+
+        self.ftp2 = FTP().random_initialize()
+        self.flp2 = FLP().random_initialize()
+        self.fttl2 = FTTL().random_initialize()
+
+        self.ftf = FTF().random_initialize()
+        self.fhf = FHF().random_initialize()
 
 
 # =============================================================================
+
 
 class FlowSock(Flow):
     """
@@ -65,7 +108,7 @@ class FlowSock(Flow):
     >>> flp  = FLP([[1.0, 100]])
     >>> fttl = FTTL([[1.0, 1]])
     >>> ftf  = FTF([[1.0, 100]])
-    >>> f    = FlowSock(9999, 42, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf)
+    >>> f    = FlowSock(9999, 42, 0, 1, ftp, flp, fttl, ftp, flp, fttl, ftf,fhf)
     """
 
     def __init__(self, *params):
@@ -76,19 +119,38 @@ class FlowSock(Flow):
         self.port1 = params[0]
         self.port2 = params[1]
 
+    def copy(self, g):
+        if not isinstance(g, FlowSock):
+            raise ValueError("Expected FlowSock, got: {0}".format(type(g)))
+        super(FlowSock, self).copy(g)
+
+        g.port1 = self.port1
+        g.port2 = self.port2
+        return
+
+    def clone(self):
+        clone = type(self)(self.port1, self.port2, self.node1, self.node2, self.ftp1, self.flp1, self.fttl1, self.ftp2,
+                           self.flp2, self.fttl2, self.ftf, self.fhf)
+        self.copy(clone)
+        return clone
+
     @staticmethod
-    def generate_l5(length):
-        l5 = 'A' * length
-        return l5
+    def random_port():
+        return random.randint(0, 2 ** 16 - 1)
 
     def mutation(self):
-        """
-        Мутация потока: с вероятностью 50% один из портов меняется на случайный
-        """
-        if random.randint(0, 1):
-            self.port1 = random.randint(0, 2 ** 16 - 1)
+        mutation_index = random.randint(0, len(self.fxs) + 1)
+        if mutation_index == len(self.fxs):  # мутирует порт1
+            self.port1 = self.random_port()
+        if mutation_index > len(self.fxs):  # мутирует порт2
+            self.port2 = self.random_port()
         else:
-            self.port2 = random.randint(0, 2 ** 16 - 1)
+            self.fxs[mutation_index].mutation()
+
+    def random_initialize(self, node1, node2):
+        Flow.random_initialize(self, node1, node2)
+        self.port1 = self.random_port()
+        self.port2 = self.random_port()
 
 
 # =============================================================================
@@ -318,15 +380,54 @@ class FlowUDP(FlowSock):
 class FlowICMP(Flow):
     def __init__(self, *params):
         """
-        params = (type1, type2, node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf):
+        params = (type1, type2, node1, node2, ftp1, flp1, fttl1, ftp2, flp2, fttl2, ftf,fhf):
         """
 
-        parent_params = params[:2]
-        super(FlowSock, self).__init__(*parent_params)
+        parent_params = params[2:]
+        super(FlowICMP, self).__init__(*parent_params)
+
+        if not isinstance(params[0], int) or not isinstance(params[1], int):
+            raise TypeError
+        if not (0 <= params[0] <= 40) or not (0 <= params[1] <= 40):
+            raise ValueError
+
         self.type1 = params[0]
         self.type2 = params[1]
 
     # -------------------------------------------------------------------------
+
+    @staticmethod
+    def random_type():
+        return random.randint(0, 40)
+
+    def mutation(self):
+        mutation_index = random.randint(0, len(self.fxs) + 1)
+        if mutation_index == len(self.fxs):  # мутирует тип1
+            self.type1 = self.random_type()
+        if mutation_index > len(self.fxs):  # мутирует тип2
+            self.type2 = self.random_type()
+        else:
+            self.fxs[mutation_index].mutation()
+
+    def random_initialize(self, node1, node2):
+        Flow.random_initialize(self, node1, node2)
+        self.type1 = self.random_type()
+        self.type2 = self.random_type()
+
+    def copy(self, g):
+        if not isinstance(g, FlowICMP):
+            raise TypeError("Expected FlowSock, got: {0}".format(type(g)))
+        super(FlowICMP, self).copy(g)
+
+        g.type1 = self.type1
+        g.type2 = self.type2
+        return
+
+    def clone(self):
+        clone = FlowICMP(self.type1, self.type2, self.node1, self.node2, self.ftp1, self.flp1, self.fttl1, self.ftp2,
+                         self.flp2, self.fttl2, self.ftf, self.fhf)
+        self.copy(clone)
+        return clone
 
     def generate(self, translator, t0):
 
@@ -365,14 +466,30 @@ class FlowICMP(Flow):
             tp = params['ftp'].random()
 
             l5 = self.generate_l5(params['flp'].random())
-            l34['IP'].time = tp
-            l34['IP'].ttl = params['fttl']
-
-            packets.append(l34 / l5)
+            l34['IP'].time = t
+            l34['IP'].ttl = params['fttl'].random()
+            p = l34 / l5
+            packets.append(p)
 
             t += tp
 
         return packets
 
+
 # =============================================================================
+
+
+def random_flow(node1, node2):
+    params = [node1, node2, FTP().random_initialize(), FLP().random_initialize(), FTTL().random_initialize(),
+              FTP().random_initialize(), FLP().random_initialize(), FTTL().random_initialize(),
+              FTF().random_initialize(), FHF().random_initialize()]
+    # выбираем тип потока - равновероятно
+    choice = 0  # random.randint(0, 2)
+    if choice == 0:
+        params = [FlowICMP.random_type(), FlowICMP.random_type()]+params
+        return FlowICMP(*params)
+    if choice == 1:
+        return FlowTCP([FlowSock.random_port(), FlowSock.random_port()]+params)
+    else:
+        return FlowUDP([FlowSock.random_port(), FlowSock.random_port()]+params)
 

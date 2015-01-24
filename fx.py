@@ -87,6 +87,8 @@ class FX(object):
         ...
         ValueError
         """
+        if len(points) < 1:
+            raise ValueError
 
         self.points = []
         seen = set()
@@ -133,17 +135,17 @@ Normalized points: {4}
         """
         случайная мутация вероятности (p) i-й точки
         """
-        # TODO: Все переделать
+        # TODO: Уточнить
         # вычислить новую вероятность
         new_p = random.random() * 0.99  # должно быть < 1
         # нормализовать остальные
-        scale = (1. - self.points[i][0]) / (1. - new_p)
-        for pnt in self.points:
-            pnt[0] /= scale
+        # scale = (1. - self.points[i][0]) / (1. - new_p)
+        # for pnt in self.points:
+        #    pnt[0] /= scale
         self.points[i][0] = new_p
         # вероятность последней точки всегда = 1
-        self.points[-1][0] = 1.0
         self.points.sort(key=lambda x: x[0])
+        self.points[-1][0] = 1.0
 
     # -------------------------------------------------------------------------
 
@@ -220,8 +222,8 @@ Normalized points: {4}
         i = random.randint(0, len(self.points) - 1)
 
         # c вероятностью 0.25 мутация вероятности или значения или количества
-        choice = random.randint(0, 3)
-
+        choice = random.randint(0, 3 if len(self.points) > 1 else 2)
+        print choice
         if choice == 0:
             self.__mutation_vi(i)
         elif choice == 1:
@@ -229,7 +231,7 @@ Normalized points: {4}
         elif choice == 2:
             self.__add_random_point()
         else:
-            self.__remove_random_point()
+            self.__remove_point(i)
 
     # -------------------------------------------------------------------------
 
@@ -266,44 +268,103 @@ Normalized points: {4}
         self.points += [[new_p, new_v]]
         self.points.sort(key=lambda point: point[0])
 
-    def __remove_random_point(self):
+    def __remove_point(self, i):
         """
         удаляет случайную точку
         """
         if len(self.points) > 1:
-            del self.points[random.randint(0, len(self.points) - 1)]
+            del self.points[i]
             self.points[-1][0] = 1.0
+
+    def copy(self, g):
+        """
+        Метод копирует объект, требуется для корректной эволюции
+        """
+        if not isinstance(g, type(self)):
+            raise ValueError("Expected: {0}, got: {1}".format(type(self), type(g)))
+
+        g.points = self.points
+        g.v_delta = self.v_delta
+        g.v_from = self.v_from
+        g.v_to = self.v_to
+        g.v_type = self.v_type
+        g.points = []
+        for p in self.points:
+            g.points.append(p[:])
+        return
+
+    def clone(self):
+        clone = FX(self.v_from, self.v_to, self.v_type)
+        return self.__clone__(clone)
+
+    def __clone__(self, new_instance):
+        self.copy(new_instance)
+        return new_instance
+
+    def random_initialize(self):
+        fflow_points_count = random.randint(1, 10)
+        new_points = []
+        for i in xrange(fflow_points_count):
+            v = self.v_type(self.v_from + random.random() * self.v_delta)
+            p = random.random() * 0.99
+            new_points.append([p, v])
+        self.load(new_points)
+        return self
 
 
 # =============================================================================
 
 class FTP(FX):
-    def __init__(self, points):
+    def __init__(self, points=None):
         super(FTP, self).__init__(0, 1e6, float, points)
+
+    def clone(self):
+        clone = FTP()
+        return self.__clone__(clone)
 
 
 class FLP(FX):
-    def __init__(self, points):
+    def __init__(self, points=None):
         super(FLP, self).__init__(100, 1300, int, points)
+
+    def clone(self):
+        clone = FLP()
+        return self.__clone__(clone)
 
 
 class FTTL(FX):
-    def __init__(self, points):
+    def __init__(self, points=None):
         super(FTTL, self).__init__(0, 100, int, points)
+
+    def clone(self):
+        clone = FTTL()
+        return self.__clone__(clone)
 
 
 class FTF(FX):
-    def __init__(self, points):
+    def __init__(self, points=None):
         super(FTF, self).__init__(0, 1e6, float, points)
+
+    def clone(self):
+        clone = FTF()
+        return self.__clone__(clone)
 
 
 class FFlow(FX):
-    def __init__(self, points):
+    def __init__(self, points=None):
         super(FFlow, self).__init__(0, 1e6, int, points)
+
+    def clone(self):
+        clone = FFlow()
+        return self.__clone__(clone)
 
 
 class FHF(FX):
-    def __init__(self, points):
+    def __init__(self, points=None):
         super(FHF, self).__init__(0, 1, int, points)
+
+    def clone(self):
+        clone = FHF()
+        return self.__clone__(clone)
 
 # =============================================================================
