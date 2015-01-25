@@ -56,3 +56,4 @@ target/
 # PyCharm
 *.xml
 ~$iploma.docx
+.idea/Diploma.iml
