@@ -64,6 +64,7 @@ class NetworkGenome(GenomeBase.GenomeBase):
         self.mutator.add(node_mutator)
         self.mutator.add(texp_mutator)
         self.mutator.add(flow_mutator)
+        self.mutator.add(fflow_mutator)
 
         self.crossover.set(network_crossover)
         self.evaluator.set(network_packets_count_tester)
@@ -127,7 +128,8 @@ def delete_node(genome, index):
 
 
 def network_mutator(genome, **args):
-    choice = random.randint(0, len(genome.nets) + 1)
+    choice = random.randint(0, len(genome.nets) + 1) if len(genome.nets) != 1 else random.choice(
+        xrange(len(genome.nets) + 1))
 
     if choice < len(genome.nets):
         if random.randint(0, 1):
@@ -151,24 +153,34 @@ def network_mutator(genome, **args):
 
 
 def node_mutator(genome, **args):
-    choice = random.randint(0, len(genome.nodes) + 1)
+    choice = random.randint(0, len(genome.nodes) + 1) if len(genome.nodes) != 1 else random.choice(
+        xrange(len(genome.nodes) + 1))
 
     if choice < len(genome.nodes):
-        genome.nodes[choice] = random.choice(xrange(len(genome.nets)))
+        old_net = genome.nodes[choice]
+        while genome.nodes[choice] == old_net:
+            genome.nodes[choice] = random.choice(xrange(len(genome.nets)))
 
     elif choice == len(genome.nodes):
         genome.nodes.append(random.choice(xrange(len(genome.nets))))
     else:
-        node_to_del = random.choice(xrange(len(genome.nodes)))
-        # вместе с узлом нужно удалить и все его потоки
-        delete_node(genome, node_to_del)
+        delete_node(genome, random.choice(xrange(len(genome.nodes))))
     return 1
+
+
+def get_random_texp():
+    return random.random() * 100
 
 
 def texp_mutator(genome, **args):
     old = genome.texp
     while old == genome.texp:
-        genome.texp = random.random() * 100
+        genome.texp = get_random_texp()
+    return 1
+
+
+def fflow_mutator(genome, **kwargs):
+    genome.fflow.mutation()
     return 1
 
 
@@ -272,7 +284,7 @@ def network_initializer(genome, **args):
 
     fflow = FFlow().random_initialize()
 
-    texp = random.random() * 100  # TODO
+    texp = get_random_texp()
     genome = NetworkGenome(nets, nodes, flows, fflow, texp)
 
     return genome
