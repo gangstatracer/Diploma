@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import random
+import uuid
 
-from pyevolve import GenomeBase, Util
+from pyevolve import GenomeBase
+from scapy.utils import wrpcap
+
 from flow import Flow, random_flow
 from fx import FFlow
-from nets_manager import cls_ranges
+from nets_manager import cls_ranges, Translator, dirs
 
 
 class NetworkGenome(GenomeBase.GenomeBase):
@@ -18,19 +21,19 @@ class NetworkGenome(GenomeBase.GenomeBase):
         GenomeBase.GenomeBase.__init__(self)
 
         cls_names = cls_ranges.keys()
-        dirs = ('l', 'r')
+
         for n in nets:
             if (n[0] not in cls_names) or (n[1] not in dirs):
-                raise ValueError
+                raise ValueError(n)
         net_range = xrange(len(nets))
         for n in nodes:
             if n not in net_range:
-                raise ValueError
-        node_range = set(xrange(len(nodes)))
+                raise ValueError(n)
+        node_range = len(nodes)
         for f in flows:
             if not isinstance(f, Flow):
-                raise ValueError
-            if not ({f.node1, f.node2} < node_range):
+                raise ValueError(str(f))
+            if f.node1 >= node_range or f.node2 >= node_range:
                 raise ValueError
         if (type(fflow) != FFlow) or (type(texp) != float):
             raise ValueError
@@ -58,12 +61,15 @@ class NetworkGenome(GenomeBase.GenomeBase):
 
         self.mutator.setRandomApply(True)  # произвольным образом выбирается только один из мутаторов
         self.mutator.set(network_mutator)
-        self.mutator.set(node_mutator)
-        self.mutator.set(texp_mutator)
-        self.mutator.set(flow_mutator)
+        self.mutator.add(node_mutator)
+        self.mutator.add(texp_mutator)
+        self.mutator.add(flow_mutator)
 
         self.crossover.set(network_crossover)
-        self.evaluator.set(network_random_tester)
+        self.evaluator.set(network_packets_count_tester)
+
+    def __repr__(self):
+        return str(self.texp)+'||'+str(self.fflow)+'||'+str(self.nets)+'||'+str(self.nodes)+'||'+str(self.flows)
 
     # Реализация контракта pyevolve
     def copy(self, g):
@@ -82,6 +88,8 @@ class NetworkGenome(GenomeBase.GenomeBase):
 
     # Реализация контракта pyevolve
     def clone(self):
+        if not all(n < len(self.nets) for n in self.nodes):
+            raise ValueError
         clone = NetworkGenome(self.nets, self.nodes, self.flows, self.fflow, self.texp)
         self.copy(clone)
         return clone
@@ -94,7 +102,7 @@ def network_mutator(genome, **args):
         if random.randint(0, 1):
             genome.nets[choice][0] = random.choice(cls_ranges.keys())
         else:
-            genome.nets[choice][0] = 'l' if random.randint(0, 1) else 'r'
+            genome.nets[choice][1] = 'l' if random.randint(0, 1) else 'r'
 
     elif choice == len(genome.nodes):
         genome.nets.append([random.choice(cls_ranges.keys()), 'l' if random.randint(0, 1) else 'r'])
@@ -108,7 +116,7 @@ def network_mutator(genome, **args):
             if genome.nodes[n] == net_to_del:
                 deleted_nodes.append(n)
 
-        for n in deleted_nodes:
+        for n in sorted(deleted_nodes, reverse=True):
             del genome.nodes[n]
 
         for f in genome.flows:
@@ -122,12 +130,12 @@ def node_mutator(genome, **args):
     choice = random.randint(0, len(genome.nodes) + 1)
 
     if choice < len(genome.nodes):
-        genome.nodes[choice] = random.choice(genome.nets)
+        genome.nodes[choice] = random.choice(xrange(len(genome.nets)))
 
     elif choice == len(genome.nodes):
-        genome.nodes.append(random.choice(genome.nets))
+        genome.nodes.append(random.choice(xrange(len(genome.nets))))
     else:
-        node_to_del = random.randint(0, len(genome.nodes) - 1)
+        node_to_del = random.choice(xrange(len(genome.nodes)))
         # вместе с узлом нужно удалить и все его потоки
         for f in genome.flows:
             if f.node1 == node_to_del or f.node2 == node_to_del:
@@ -175,13 +183,13 @@ def network_crossover(genome, **args):
     cross = random.randint(0, min(len(sister.flows) - 1, len(brother.flows) - 1))
 
     # формируем геном сестры
-    s_flows = sister.flows[:cross] + brother[cross:]
+    s_flows = sister.flows[:cross] + brother.flows[cross:]
     sister.nets, sister.nodes = translate_nodes_and_nets(s_flows, sister.nodes, brother.nodes, sister.nets,
                                                          brother.nets, lambda x: 's' if x < cross else 'b')
     sister.flows = s_flows
 
     # формируем геном брата
-    b_flows = brother.flows[:cross] + sister[cross:]
+    b_flows = brother.flows[:cross] + sister.flows[cross:]
     brother.nets, brother.nodes = translate_nodes_and_nets(b_flows, sister.nodes, brother.nodes, sister.nets,
                                                            brother.nets, lambda x: 'b' if x < cross else 's')
     brother.flows = b_flows
@@ -217,6 +225,11 @@ def translate_nodes_and_nets(flows, sister_nodes, brother_nodes, sister_nets, br
             net_dictionary.append([old_index, flag])
             b_nets.append(net)
         b_nodes.append(net_dictionary.index([old_index, flag]))
+
+    if not all(isinstance(item, int) for item in b_nodes):
+        raise TypeError
+    if not all(item < len(b_nets) for item in b_nodes):
+        raise ValueError
     return b_nets, b_nodes
 
 
@@ -231,7 +244,7 @@ def network_initializer(genome, **args):
 
     nodes = []
     for node in xrange(random.randint(1, 100)):  # TODO
-        nodes.append(random.randint(0, len(nets) - 1))
+        nodes.append(random.choice(xrange(len(nets))))
 
     flows = []
     for f in xrange(random.randint(1, 10)):  # TODO
@@ -249,4 +262,17 @@ def network_random_tester(genome):
     score = 0.0
     score = float(random.random(100))
     return score
+
+
+def network_packets_count_tester(genome):
+    res = []
+    translator = Translator(genome.nets, genome.nodes)
+    for f in genome.flows:
+        res.extend(f.generate(translator, 0))
+    name = """/home/tmp/""" + str(uuid.uuid1())
+    f = open(name, 'w')
+    f.write(str(genome))
+    f.close()
+    wrpcap(name + '.cap', res)
+    return len(res)
 

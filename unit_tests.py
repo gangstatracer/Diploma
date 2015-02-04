@@ -229,4 +229,3 @@ class TestNetworkGenome(TestCase):
 
     # TODO write mutators tests
 
-

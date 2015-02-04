@@ -12,6 +12,8 @@ cls_ranges = {
     'm': (0xffffffff, 0),  # multicast
 }
 
+dirs = ('l', 'r')
+
 # =============================================================================
 
 
@@ -36,7 +38,9 @@ class Translator:
         self.node2pos = []
         self.ip2pos = {}
 
-        net_counts = {'z': 0, 'a': 0, 'l': 0, 'b': 0, 'c': 0, 'd': 0, 'e': 0, 'm': 0}
+        net_counts = {}  # {'z': 0, 'a': 0, 'l': 0, 'b': 0, 'c': 0, 'd': 0, 'e': 0, 'm': 0}
+        for k in cls_ranges.keys():
+            net_counts[k] = 0
         net_addrs = []
         node_counts = []
 
@@ -51,6 +55,8 @@ class Translator:
         for i in xrange(len(nodes)):
             net = nodes[i]
 
+            if len(node_counts) <= net:
+                raise IndexError(net, node_counts, nodes)
             node_counts[net] += 1
             while node_counts[net] & 0xff in (0xff, 0x00):
                 node_counts[net] += 1

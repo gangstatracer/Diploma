@@ -185,6 +185,8 @@ class FlowTCP(FlowSock):
 
         t1 = t0 + self.ftf.random()
 
+        if self.node2 >= len(translator.node2ip) or self.node2 >= len(translator.node2ip):
+            raise IndexError(self.node1, self.node2, translator.node2ip)
         ip1 = translator.node2ip[self.node1]
         ip2 = translator.node2ip[self.node2]
 
@@ -341,6 +343,8 @@ class FlowUDP(FlowSock):
 
         t1 = t0 + self.ftf.random()
 
+        if self.node2 >= len(translator.node2ip) or self.node2 >= len(translator.node2ip):
+            raise IndexError(self.node1, self.node2, translator.node2ip)
         ip1 = translator.node2ip[self.node1]
         ip2 = translator.node2ip[self.node2]
 
@@ -431,6 +435,8 @@ class FlowICMP(Flow):
 
     def generate(self, translator, t0):
 
+        if self.node2 >= len(translator.node2ip) or self.node2 >= len(translator.node2ip):
+            raise IndexError(self.node1, self.node2, translator.node2ip)
         ip1 = translator.node2ip[self.node1]
         ip2 = translator.node2ip[self.node2]
 
@@ -484,12 +490,14 @@ def random_flow(node1, node2):
               FTP().random_initialize(), FLP().random_initialize(), FTTL().random_initialize(),
               FTF().random_initialize(), FHF().random_initialize()]
     # выбираем тип потока - равновероятно
-    choice = 0  # random.randint(0, 2)
+    choice = random.randint(0, 2)
     if choice == 0:
         params = [FlowICMP.random_type(), FlowICMP.random_type()]+params
         return FlowICMP(*params)
     if choice == 1:
-        return FlowTCP([FlowSock.random_port(), FlowSock.random_port()]+params)
+        params = [FlowSock.random_port(), FlowSock.random_port()]+params
+        return FlowTCP(*params)
     else:
-        return FlowUDP([FlowSock.random_port(), FlowSock.random_port()]+params)
+        params = [FlowSock.random_port(), FlowSock.random_port()]+params
+        return FlowUDP(*params)
 
