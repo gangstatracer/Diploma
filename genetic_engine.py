@@ -8,7 +8,7 @@ from scapy.utils import wrpcap
 
 from flow import Flow, random_flow
 from fx import FFlow
-from nets_manager import cls_ranges, Translator, dirs
+from nets_manager import cls_ranges, Translator, directions
 
 
 class NetworkGenome(GenomeBase.GenomeBase):
@@ -23,7 +23,7 @@ class NetworkGenome(GenomeBase.GenomeBase):
         cls_names = cls_ranges.keys()
 
         for n in nets:
-            if (n[0] not in cls_names) or (n[1] not in dirs):
+            if (n[0] not in cls_names) or (n[1] not in directions):
                 raise ValueError(n)
         net_range = xrange(len(nets))
         for n in nodes:
@@ -69,7 +69,8 @@ class NetworkGenome(GenomeBase.GenomeBase):
         self.evaluator.set(network_packets_count_tester)
 
     def __repr__(self):
-        return str(self.texp)+'||'+str(self.fflow)+'||'+str(self.nets)+'||'+str(self.nodes)+'||'+str(self.flows)
+        return str(self.texp) + '||' + str(self.fflow) + '||' + str(self.nets) + '||' + str(self.nodes) + '||' + str(
+            self.flows)
 
     # Реализация контракта pyevolve
     def copy(self, g):
@@ -95,33 +96,56 @@ class NetworkGenome(GenomeBase.GenomeBase):
         return clone
 
 
+def delete_node(genome, index):
+    flows = []
+    nodes = genome.nodes
+    nets = []
+
+    for f in genome.flows:
+        if f.node1 != index and f.node2 != index:
+            flows.append(f)
+
+    # при удалении узла надо поменять индексы в потоках
+    for f in flows:
+        if f.node1 > index:
+            f.node1 -= 1
+        if f.node2 > index:
+            f.node2 -= 1
+
+    del nodes[index]
+
+    # удаляем неиспользуемые сети
+    for net_index in xrange(len(genome.nets)):
+        if any(node == net_index for node in nodes):
+            nets.append(genome.nets[net_index])
+    genome.nets = nets
+
+    genome.nodes = nodes
+    genome.flows = flows
+
+    return
+
+
 def network_mutator(genome, **args):
     choice = random.randint(0, len(genome.nets) + 1)
 
     if choice < len(genome.nets):
         if random.randint(0, 1):
-            genome.nets[choice][0] = random.choice(cls_ranges.keys())
+            genome.nets[choice] = (random.choice(cls_ranges.keys()), genome.nets[choice][1])
         else:
-            genome.nets[choice][1] = 'l' if random.randint(0, 1) else 'r'
+            genome.nets[choice] = (genome.nets[choice][0], 'l' if random.randint(0, 1) else 'r')
 
-    elif choice == len(genome.nodes):
+    elif choice == len(genome.nets):
         genome.nets.append([random.choice(cls_ranges.keys()), 'l' if random.randint(0, 1) else 'r'])
 
     else:
-        net_to_del = random.randint(0, len(genome.nets) - 1)
+        net_to_del = random.choice(xrange(len(genome.nets)))
         del genome.nets[net_to_del]
         # вместе с сетью нужно удалить узлы и потоки
-        deleted_nodes = []
-        for n in xrange(len(genome.nodes)):
-            if genome.nodes[n] == net_to_del:
-                deleted_nodes.append(n)
-
-        for n in sorted(deleted_nodes, reverse=True):
-            del genome.nodes[n]
-
-        for f in genome.flows:
-            if f.node1 in deleted_nodes or f.node2 in deleted_nodes:
-                del genome.flows[genome.flows.index(f)]
+        while any(net_index == net_to_del for net_index in genome.nodes):
+            next_index = next(
+                node_index for node_index in xrange(len(genome.nodes)) if genome.nodes[node_index] == net_to_del)
+            delete_node(genome, next_index)
 
     return 1
 
@@ -137,11 +161,7 @@ def node_mutator(genome, **args):
     else:
         node_to_del = random.choice(xrange(len(genome.nodes)))
         # вместе с узлом нужно удалить и все его потоки
-        for f in genome.flows:
-            if f.node1 == node_to_del or f.node2 == node_to_del:
-                del genome.flows[genome.flows.index(f)]
-        del genome.nodes[node_to_del]
-
+        delete_node(genome, node_to_del)
     return 1
 
 
