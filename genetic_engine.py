@@ -4,6 +4,7 @@ import random
 import uuid
 
 from pyevolve import GenomeBase
+from scapy.sendrecv import sendpfast, send
 from scapy.utils import wrpcap
 
 from flow import Flow, random_flow
@@ -98,6 +99,7 @@ class NetworkGenome(GenomeBase.GenomeBase):
 
 
 def delete_node(genome, index):
+    check_genome(genome)
     flows = []
     nodes = genome.nodes
     nets = []
@@ -115,15 +117,16 @@ def delete_node(genome, index):
 
     del nodes[index]
 
-    # удаляем неиспользуемые сети
-    for net_index in xrange(len(genome.nets)):
-        if any(node == net_index for node in nodes):
-            nets.append(genome.nets[net_index])
-    genome.nets = nets
+    # # удаляем неиспользуемые сети
+    # for net_index in xrange(len(genome.nets)):
+    # if any(node == net_index for node in nodes):
+    #         nets.append(genome.nets[net_index])
+    # genome.nets = nets
 
     genome.nodes = nodes
     genome.flows = flows
 
+    check_genome(genome)
     return
 
 
@@ -142,13 +145,20 @@ def network_mutator(genome, **args):
 
     else:
         net_to_del = random.choice(xrange(len(genome.nets)))
-        del genome.nets[net_to_del]
+
         # вместе с сетью нужно удалить узлы и потоки
         while any(net_index == net_to_del for net_index in genome.nodes):
             next_index = next(
                 node_index for node_index in xrange(len(genome.nodes)) if genome.nodes[node_index] == net_to_del)
             delete_node(genome, next_index)
 
+        for n in xrange(len(genome.nodes)):
+            if genome.nodes[n] > net_to_del:
+                genome.nodes[n] -= 1
+
+        del genome.nets[net_to_del]
+
+    check_genome(genome)
     return 1
 
 
@@ -165,6 +175,8 @@ def node_mutator(genome, **args):
         genome.nodes.append(random.choice(xrange(len(genome.nets))))
     else:
         delete_node(genome, random.choice(xrange(len(genome.nodes))))
+
+    check_genome(genome)
     return 1
 
 
@@ -176,11 +188,14 @@ def texp_mutator(genome, **args):
     old = genome.texp
     while old == genome.texp:
         genome.texp = get_random_texp()
+
+    check_genome(genome)
     return 1
 
 
 def fflow_mutator(genome, **kwargs):
     genome.fflow.mutation()
+    check_genome(genome)
     return 1
 
 
@@ -194,6 +209,7 @@ def flow_mutator(genome, **args):
     else:
         del genome.flows[random.randint(0, len(genome.flows) - 1)]
 
+    check_genome(genome)
     return 1
 
 
@@ -212,7 +228,8 @@ def network_crossover(genome, **args):
         sister.texp, brother.texp = brother.texp, sister.texp
     # одноточечный кроссовер функций распределения
 
-    cross = random.randint(0, min(len(sister.flows) - 1, len(brother.flows) - 1))
+    cross = random.randint(0, min(len(sister.flows), len(brother.flows)) - 2) if min(len(sister.flows),
+                                                                                     len(brother.flows)) > 2 else 0
 
     # формируем геном сестры
     s_flows = sister.flows[:cross] + brother.flows[cross:]
@@ -225,6 +242,9 @@ def network_crossover(genome, **args):
     brother.nets, brother.nodes = translate_nodes_and_nets(b_flows, sister.nodes, brother.nodes, sister.nets,
                                                            brother.nets, lambda x: 'b' if x < cross else 's')
     brother.flows = b_flows
+
+    check_genome(sister)
+    check_genome(brother)
 
     return sister, brother
 
@@ -258,9 +278,9 @@ def translate_nodes_and_nets(flows, sister_nodes, brother_nodes, sister_nets, br
             b_nets.append(net)
         b_nodes.append(net_dictionary.index([old_index, flag]))
 
-    if not all(isinstance(item, int) for item in b_nodes):
-        raise TypeError
-    if not all(item < len(b_nets) for item in b_nodes):
+    if any(item >= len(b_nets) for item in b_nodes) or len(b_nodes) == 0 or len(b_nets) == 0:
+        raise ValueError
+    if any(f.node1 >= len(b_nodes) or f.node2 >= len(b_nodes) for f in flows):
         raise ValueError
     return b_nets, b_nodes
 
@@ -269,10 +289,9 @@ def network_initializer(genome, **args):
     """
     Функция создания новой произвольнй сети
     """
-
     nets = []
     for net in xrange(random.randint(1, 10)):  # TODO
-        nets.append([random.choice(cls_ranges.keys()), 'l' if random.randint(0, 1) else 'r'])
+        nets.append((random.choice(cls_ranges.keys()), 'l' if random.randint(0, 1) else 'r'))
 
     nodes = []
     for node in xrange(random.randint(1, 100)):  # TODO
@@ -280,12 +299,15 @@ def network_initializer(genome, **args):
 
     flows = []
     for f in xrange(random.randint(1, 10)):  # TODO
-        flows.append(random_flow(random.randint(0, len(nodes) - 1), random.randint(0, len(nodes) - 1)))
+        flows.append(random_flow(random.choice(xrange(len(nodes))), random.choice(xrange(len(nodes)))))
 
     fflow = FFlow().random_initialize()
 
     texp = get_random_texp()
+
     genome = NetworkGenome(nets, nodes, flows, fflow, texp)
+
+    check_genome(genome)
 
     return genome
 
@@ -296,15 +318,45 @@ def network_random_tester(genome):
     return score
 
 
-def network_packets_count_tester(genome):
-    res = []
+def check_genome(genome):
+    if any(node >= len(genome.nets) for node in genome.nodes):
+        raise ValueError
+    if any(f.node1 >= len(genome.nodes) or f.node2 >= len(genome.nodes) for f in genome.flows):
+        raise ValueError
+    return
+
+
+def get_network_packs(genome):
+    left = []
+    right = []
     translator = Translator(genome.nets, genome.nodes)
     for f in genome.flows:
-        res.extend(f.generate(translator, 0))
+        packs = f.generate(translator, 0)
+        for p in packs:
+            del p.chksum
+            p.src = p['IP'].src
+            p.dst = p['IP'].dst
+        left.extend([p for p in packs if translator.ip2pos[p['IP'].src] == 'l'])
+        right.extend([p for p in packs if translator.ip2pos[p['IP'].src] == 'r'])
+
+    left.sort(key=lambda pack: pack['IP'].time)
+    right.sort(key=lambda pack: pack['IP'].time)
+
+    return left, right
+
+
+def network_packets_count_tester(genome):
+    check_genome(genome)
+    left, right = get_network_packs(genome)
+    if len(left) > 0:
+        send(left)
     name = """/home/tmp/""" + str(uuid.uuid1())
     f = open(name, 'w')
     f.write(str(genome))
     f.close()
-    wrpcap(name + '.cap', res)
-    return len(res)
+    if len(left) > 0:
+        wrpcap(name + '--left' + '.cap', left)
+    if len(right) > 0:
+        wrpcap(name + '--right' + '.cap', right)
+    return len(left) + len(right)
 

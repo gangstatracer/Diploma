@@ -40,6 +40,11 @@ class Flow(object):
         # массив ссылок на все ФРВ
         self.fxs = params[2:]
 
+    def __repr__(self):
+        return
+        """{0}, {1}, {2}, {3}""".format(self.node1, str(self.ftp1), str(self.flp1), str(self.fttl1))
+        + """{0}, {1}, {2}, {3}""".format(self.node2, str(self.ftp2), str(self.flp2), str(self.fttl2))
+        + """{0}, {1}""".format(str(self.ftf), str(self.fhf))
     # -------------------------------------------------------------------------
 
     def generate(self, translator, t0):
@@ -119,6 +124,9 @@ class FlowSock(Flow):
         self.port1 = params[0]
         self.port2 = params[1]
 
+    def __repr__(self):
+        return """port1:{0}, port2:{1}""".format(self.port1, self.port1)
+
     def copy(self, g):
         if not isinstance(g, FlowSock):
             raise ValueError("Expected FlowSock, got: {0}".format(type(g)))
@@ -185,8 +193,6 @@ class FlowTCP(FlowSock):
 
         t1 = t0 + self.ftf.random()
 
-        if self.node2 >= len(translator.node2ip) or self.node2 >= len(translator.node2ip):
-            raise IndexError(self.node1, self.node2, translator.node2ip)
         ip1 = translator.node2ip[self.node1]
         ip2 = translator.node2ip[self.node2]
 
@@ -343,8 +349,6 @@ class FlowUDP(FlowSock):
 
         t1 = t0 + self.ftf.random()
 
-        if self.node2 >= len(translator.node2ip) or self.node2 >= len(translator.node2ip):
-            raise IndexError(self.node1, self.node2, translator.node2ip)
         ip1 = translator.node2ip[self.node1]
         ip2 = translator.node2ip[self.node2]
 
@@ -399,6 +403,8 @@ class FlowICMP(Flow):
         self.type2 = params[1]
 
     # -------------------------------------------------------------------------
+    def __repr__(self):
+        return """type1:{0}, type2:{1}""".format(self.type2, self.type2)
 
     @staticmethod
     def random_type():
@@ -435,8 +441,6 @@ class FlowICMP(Flow):
 
     def generate(self, translator, t0):
 
-        if self.node2 >= len(translator.node2ip) or self.node2 >= len(translator.node2ip):
-            raise IndexError(self.node1, self.node2, translator.node2ip)
         ip1 = translator.node2ip[self.node1]
         ip2 = translator.node2ip[self.node2]
 
