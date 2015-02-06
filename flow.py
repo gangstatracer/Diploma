@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import uuid
 
 from fx import *
 from scapy.all import *
@@ -58,7 +59,7 @@ class Flow(object):
 
     @staticmethod
     def generate_l5(length):
-        l5 = 'A' * length
+        l5 = str(uuid.uuid1()) + 'A' * length
         return l5
 
     def copy(self, g):
