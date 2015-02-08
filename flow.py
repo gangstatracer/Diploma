@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import uuid
 
 from fx import *
 from scapy.all import *
@@ -40,6 +41,11 @@ class Flow(object):
         # массив ссылок на все ФРВ
         self.fxs = params[2:]
 
+    def __repr__(self):
+        return
+        """{0}, {1}, {2}, {3}""".format(self.node1, str(self.ftp1), str(self.flp1), str(self.fttl1))
+        + """{0}, {1}, {2}, {3}""".format(self.node2, str(self.ftp2), str(self.flp2), str(self.fttl2))
+        + """{0}, {1}""".format(str(self.ftf), str(self.fhf))
     # -------------------------------------------------------------------------
 
     def generate(self, translator, t0):
@@ -53,7 +59,7 @@ class Flow(object):
 
     @staticmethod
     def generate_l5(length):
-        l5 = 'A' * length
+        l5 = str(uuid.uuid1()) + 'A' * length
         return l5
 
     def copy(self, g):
@@ -118,6 +124,9 @@ class FlowSock(Flow):
             raise ValueError
         self.port1 = params[0]
         self.port2 = params[1]
+
+    def __repr__(self):
+        return """port1:{0}, port2:{1}""".format(self.port1, self.port1)
 
     def copy(self, g):
         if not isinstance(g, FlowSock):
@@ -395,6 +404,8 @@ class FlowICMP(Flow):
         self.type2 = params[1]
 
     # -------------------------------------------------------------------------
+    def __repr__(self):
+        return """type1:{0}, type2:{1}""".format(self.type2, self.type2)
 
     @staticmethod
     def random_type():
@@ -484,12 +495,14 @@ def random_flow(node1, node2):
               FTP().random_initialize(), FLP().random_initialize(), FTTL().random_initialize(),
               FTF().random_initialize(), FHF().random_initialize()]
     # выбираем тип потока - равновероятно
-    choice = 0  # random.randint(0, 2)
+    choice = random.randint(0, 2)
     if choice == 0:
         params = [FlowICMP.random_type(), FlowICMP.random_type()]+params
         return FlowICMP(*params)
     if choice == 1:
-        return FlowTCP([FlowSock.random_port(), FlowSock.random_port()]+params)
+        params = [FlowSock.random_port(), FlowSock.random_port()]+params
+        return FlowTCP(*params)
     else:
-        return FlowUDP([FlowSock.random_port(), FlowSock.random_port()]+params)
+        params = [FlowSock.random_port(), FlowSock.random_port()]+params
+        return FlowUDP(*params)
 

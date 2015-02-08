@@ -316,7 +316,7 @@ Normalized points: {4}
 
 class FTP(FX):
     def __init__(self, points=None):
-        super(FTP, self).__init__(0, 1e6, float, points)
+        super(FTP, self).__init__(0, 1, float, points)
 
     def clone(self):
         clone = FTP()
@@ -343,7 +343,7 @@ class FTTL(FX):
 
 class FTF(FX):
     def __init__(self, points=None):
-        super(FTF, self).__init__(0, 1e6, float, points)
+        super(FTF, self).__init__(0, 100, float, points)
 
     def clone(self):
         clone = FTF()
