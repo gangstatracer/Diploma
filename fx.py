@@ -94,7 +94,7 @@ class FX(object):
         seen = set()
         for p in points:
             if not ((0 <= p[0] <= 1) and (self.v_from <= p[1] <= self.v_to)):
-                raise ValueError
+                raise ValueError(p, self.v_from, self.v_to)
             if p[0] not in seen and not seen.add(p[0]):
                 self.points.append([p[0], self.v_type(p[1])])
         self.points.sort(key=lambda x: x[0])
@@ -257,6 +257,8 @@ Normalized points: {4}
         i = 0
         while r > self.points[i][0]:
             i += 1
+        if not (self.v_from <= self.points[i][1] <= self.v_to):
+            raise ValueError(self.points[i][1], self.v_from, self.v_to)
         return self.points[i][1]
 
     def __add_random_point(self):
@@ -306,6 +308,7 @@ Normalized points: {4}
         new_points = []
         for i in xrange(fflow_points_count):
             v = self.v_type(self.v_from + random.random() * self.v_delta)
+            assert self.v_from <= v <= self.v_to
             p = random.random() * 0.99
             new_points.append([p, v])
         self.load(new_points)
@@ -316,7 +319,7 @@ Normalized points: {4}
 
 class FTP(FX):
     def __init__(self, points=None):
-        super(FTP, self).__init__(0, 1, float, points)
+        super(FTP, self).__init__(0, 0.1, float, points)
 
     def clone(self):
         clone = FTP()

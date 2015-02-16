@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import random
-import uuid
 
 from pyevolve import GenomeBase
-from scapy.sendrecv import sendpfast, send
-from scapy.utils import wrpcap
 
 from flow import Flow, random_flow
 from fx import FFlow
-from nets_manager import cls_ranges, Translator, directions
+from nets_manager import directions, masks
+from tester import network_packets_count_tester
 
 
 class NetworkGenome(GenomeBase.GenomeBase):
@@ -21,7 +19,7 @@ class NetworkGenome(GenomeBase.GenomeBase):
 
         GenomeBase.GenomeBase.__init__(self)
 
-        cls_names = cls_ranges.keys()
+        cls_names = masks  # cls_ranges.keys()
 
         for n in nets:
             if (n[0] not in cls_names) or (n[1] not in directions):
@@ -136,12 +134,12 @@ def network_mutator(genome, **args):
 
     if choice < len(genome.nets):
         if random.randint(0, 1):
-            genome.nets[choice] = (random.choice(cls_ranges.keys()), genome.nets[choice][1])
+            genome.nets[choice] = (random.choice(masks), genome.nets[choice][1])
         else:
-            genome.nets[choice] = (genome.nets[choice][0], 'l' if random.randint(0, 1) else 'r')
+            genome.nets[choice] = (genome.nets[choice][0], random.choice(directions))
 
     elif choice == len(genome.nets):
-        genome.nets.append([random.choice(cls_ranges.keys()), 'l' if random.randint(0, 1) else 'r'])
+        genome.nets.append((random.choice(masks), random.choice(directions)))
 
     else:
         net_to_del = random.choice(xrange(len(genome.nets)))
@@ -290,15 +288,15 @@ def network_initializer(genome, **args):
     Функция создания новой произвольнй сети
     """
     nets = []
-    for net in xrange(random.randint(1, 10)):  # TODO
-        nets.append((random.choice(cls_ranges.keys()), 'l' if random.randint(0, 1) else 'r'))
+    for net in xrange(random.randint(1, 10)):
+        nets.append((random.choice(masks), random.choice(directions)))
 
     nodes = []
-    for node in xrange(random.randint(1, 100)):  # TODO
+    for node in xrange(random.randint(1, 100)):
         nodes.append(random.choice(xrange(len(nets))))
 
     flows = []
-    for f in xrange(random.randint(1, 10)):  # TODO
+    for f in xrange(random.randint(1, 10)):
         flows.append(random_flow(random.choice(xrange(len(nodes))), random.choice(xrange(len(nodes)))))
 
     fflow = FFlow().random_initialize()
@@ -324,39 +322,3 @@ def check_genome(genome):
     if any(f.node1 >= len(genome.nodes) or f.node2 >= len(genome.nodes) for f in genome.flows):
         raise ValueError
     return
-
-
-def get_network_packs(genome):
-    left = []
-    right = []
-    translator = Translator(genome.nets, genome.nodes)
-    for f in genome.flows:
-        packs = f.generate(translator, 0)
-        for p in packs:
-            del p.chksum
-            p.src = p['IP'].src
-            p.dst = p['IP'].dst
-        left.extend([p for p in packs if translator.ip2pos[p['IP'].src] == 'l'])
-        right.extend([p for p in packs if translator.ip2pos[p['IP'].src] == 'r'])
-
-    left.sort(key=lambda pack: pack['IP'].time)
-    right.sort(key=lambda pack: pack['IP'].time)
-
-    return left, right
-
-
-def network_packets_count_tester(genome):
-    check_genome(genome)
-    left, right = get_network_packs(genome)
-    if len(left) > 0:
-        send(left)
-    name = """/home/tmp/""" + str(uuid.uuid1())
-    f = open(name, 'w')
-    f.write(str(genome))
-    f.close()
-    if len(left) > 0:
-        wrpcap(name + '--left' + '.cap', left)
-    if len(right) > 0:
-        wrpcap(name + '--right' + '.cap', right)
-    return len(left) + len(right)
-
